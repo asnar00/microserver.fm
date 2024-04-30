@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "lib": ["deno.ns", "esnext"],
+      "strict": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true
+    },
+    "lint": {
+      "files": {
+        "include": ["./src/**/*"]
+      }
+    },
+    "fmt": {},
+    "importMap": "import_map.json"
+  }
+  

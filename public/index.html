@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deno Client</title>
+</head>
+<body>
+    <h1>test deno server</h1>
+    <input type="text" id="username" placeholder="enter your name">
+    <button onclick="sendName()">submit</button>
+    <p id="response"></p>
+    <script>
+        async function sendName() {
+            const userName = document.getElementById('username').value;
+            const response = await fetch('http://localhost:8000/greet', {
+                method: 'PUT', // Specify the method as PUT
+                headers: {
+                    'Content-Type': 'application/json' // Specify that we're sending JSON data
+                },
+                body: JSON.stringify({username: userName}) // Send the data as a JSON string
+            });
+            const data = await response.text();
+            document.getElementById('response').textContent = data;
+        }
+    </script>
+</body>
+</html>

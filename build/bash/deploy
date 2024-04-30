@@ -1,0 +1,8 @@
+#!/bin/bash
+# ᕦ(ツ)ᕤ
+# author: asnaroo
+# sync local files to microserver
+
+tput -Txterm reset
+echo "compiling typescript"
+tsc -p "/Users/asnaroo/desktop/experiments/microserver.fm/source/ts"
