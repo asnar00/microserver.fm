@@ -35,36 +35,56 @@ export class FeatureManager {
     features: any = {};          // all feature classes (instance of each)
     metafeatures: any = {};      // metafeatures store relationships between features
     composites: any = {};        // all composite functions (instance of each)
+    debugging: boolean = true;  // debug mode
 
     constructor() {
         this.features["Feature"] = new Feature();
         this.metafeatures["Feature"] = new MetaFeature("Feature", "");
     }
 
+    // readout features and functions
+    readout() {
+        console.log("features: -----------------------------------");
+        this.readout_features();
+        console.log("\nfunctions: ----------------------------------");
+        this.readout_functions();
+    }
+
     // disable one or more features by name
     disable(featuresToDisable: string[]) {
         this.reset();
         for(let f of featuresToDisable) { fm["_disabled"][f] = true;}
+        this.build_all();
+    }
+
+    // debug mode
+    debug(onOff: boolean) {
+        this.debugging = onOff;
     }
 
     private reset() {
+        for(let f in fm) { if (f[0]!="_") delete fm[f]; }
         fm["_disabled"] = {};
-         for(let c in this.composites) { fm[c] = () => {}; }
     }
 
     // build all functions with the current enabled/disabled state
-    build() {
+    private build_all() {
         for(let c in this.composites) {
-            console_indent();
-            let func = this.build_function(this.composites[c]);
-            if (!func) { func = () => {}; }
-            fm[c] = func;
-            console_undent();
+            this.build(c);
+        }
+    }
+
+    private build(compositeName: string) {
+        let func = this.build_function(this.composites[compositeName]);
+        if (func) {
+            fm[compositeName] = func;
+        } else {
+            delete fm[compositeName];
         }
     }
 
     // true if feature and all parents are enabled
-    enabled(featureName: string): boolean {
+    private enabled(featureName: string): boolean {
         let result = true;
         let mf = this.metafeatures[featureName];
         while (mf && result) {
@@ -75,7 +95,7 @@ export class FeatureManager {
     }
 
     // print a tree of features, with disabled ones greyed out and stubbed
-    readout_features(mf: MetaFeature|null=null) {
+    private readout_features(mf: MetaFeature|null=null) {
         if (!mf) mf = this.metafeatures["Feature"];
         let enabled = this.enabled(mf!.name);
         if (enabled) { console.log(`${mf!.name}`); }
@@ -89,9 +109,11 @@ export class FeatureManager {
     }
 
     // print composite-definitions of all functions
-    readout_functions() {
+    private readout_functions() {
         for(let c in this.composites) {
-            console.log(`${c}: ${this.composites[c].toString()}`);
+            if (fm[c]) {
+               console.log(`${c}: ${this.composites[c].toString()}`);
+            }
         }
     }
 
@@ -151,11 +173,15 @@ export class FeatureManager {
     private build_single(fn: FeatureFunction) : Function|null {
         if (!this.enabled(fn.featureName)) return null;
         return function (...args: any[]) {
-            _stack.push(fn.toString());
-            _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+            if (fm._manager.debugging) {
+                _stack.push(fn.toString());
+                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+            }
             let result: any = fn.descriptor.value.apply(fm._manager.composites[fn.featureName], args);  
-            _stack.pop();
-            _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+            if (fm._manager.debugging) {
+                _stack.pop();
+                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+            }
             return result;
         };
     }
@@ -164,7 +190,7 @@ export class FeatureManager {
 fm['_manager'] = new FeatureManager();
 
 //------------------------------------------------------------------------------
-// On, Before, After, Replace classes
+// On, Before, After classes
 
 // FeatureFunction refers to a specific method defined in a feature clause
 class FeatureFunction { 
@@ -191,9 +217,12 @@ class CompositeFunction {
     }
     toString() : string {
         if (this.existing) {
+            let fn = (fm._disabled[this.fn.featureName]) ? "" : this.fn.toString();
+            let existing = this.existing.toString();
+            if (fn=="") return existing; else if (existing=="") return fn;
             return `(${this.fn.toString()} ${this.type} ${this.existing.toString()})`;
         } else {
-            return `(${this.fn.toString()})`;
+            return (fm._disabled[this.fn.featureName]) ? "" : this.fn.toString();
         }
     }
 }
@@ -204,6 +233,7 @@ function addComposite(type: string, featureName: string, fn: string, descriptor:
     let existing = fm._manager.composites[fn];
     let newComposite = new CompositeFunction(type, newFn, existing);
     fm._manager.composites[fn] = newComposite;
+    fm._manager.build(fn);
 }
 
 //------------------------------------------------------------------------------

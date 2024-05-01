@@ -14,7 +14,7 @@ const { Feature, feature, on, after, before, fm } = features;
 @feature(Feature) class Main {
     @on async main() {
         console.log("ᕦ(ツ)ᕤ");
-        console.log("feature modular server");
+        console.log("microserver.fm");
     }
 }
 
@@ -104,11 +104,6 @@ const { Feature, feature, on, after, before, fm } = features;
 }
 
 //------------------------------------------------------------------------------
-console.log("---------------------------------------------");
-console.log("ᕦ(ツ)ᕤ");
-console.log("microserver.fm");
-fm._manager.build();
-fm._manager.readout_features();
-fm._manager.readout_functions();
+fm._manager.readout();
 console.log("---------------------------------------------");
 fm.main();

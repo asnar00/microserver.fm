@@ -26,11 +26,11 @@ const { Feature, feature, on, after, before, fm} = features;
 //-----------------------------------------------------------------------------
 
 @feature(Main) class Goodbye {
-    @on kthxbye() {
+    @on bye() {
         console.log("kthxbye");
     }
     @after main() {
-        fm.kthxbye();
+        fm.bye();
     }
 }
 
@@ -46,11 +46,7 @@ const { Feature, feature, on, after, before, fm} = features;
 }
 
 console.log("ᕦ(ツ)ᕤ");
-console.log("features: -----------------------------------");
-fm._manager.readout_features();
-console.log("functions: ----------------------------------");
-fm._manager.readout_functions();
-//fm._manager.disable(["Goodbye"]);
-fm._manager.build();
+fm._manager.readout();
+
 console.log("run: ----------------------------------------");
 fm.main();
