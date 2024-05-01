@@ -72,11 +72,11 @@ Now, if you call `fm.main()`, you'll get this:
 Similarly, you can add behaviour before an existing function using the `@before` decorator:
 
     @feature(Main) class Countdown {
-        @before main() {
-            fm.countdown();
-        }
         @on countdown() {
             console.log("10 9 8 7 6 5 4 3 2 1");
+        }
+        @before main() {
+            fm.countdown();
         }
     }
 
