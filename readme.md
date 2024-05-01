@@ -166,8 +166,6 @@ Feature-modular typescript ("fm.ts") is ordinary typescript augmented with a set
 
 ## future work
 
-- feature readout: print tree of features
-- enable/disable: turn features on and off
 - specifying client and server code in the same feature
 - multiple contexts: switch between different feature-groups
 - debugging workflows: automated logging, fault tracing

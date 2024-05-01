@@ -21,9 +21,12 @@ const { Feature, feature, on, after, before, fm } = features;
 //------------------------------------------------------------------------------
 // Server listens on port 8000 but only returns "not found" for now
 
-@feature(Main) class Server { 
-    @on async handler(req: Request): Promise<Response> {
+@feature(Main) class Server {
+    @on async notFound() : Promise<Response> {
         return new Response("Not found", { status: 404 });
+    }
+    @on async handler(req: Request): Promise<Response> {
+        return fm.notFound();
     }
     @on async receiveRequest(req: Request): Promise<Response> {
         console.log(req.method, req.url);
@@ -79,9 +82,7 @@ const { Feature, feature, on, after, before, fm } = features;
         let params = await req.json();
         if (typeof fm[functionName] === 'function') {
             let result : any = fm[functionName](...Object.values(params));
-            if (result instanceof Promise) {
-                result = await result;
-            }
+            if (result instanceof Promise) { result = await result; }
             return new Response(JSON.stringify(result), { status: 200 });
         }
     }
