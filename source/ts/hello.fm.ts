@@ -3,7 +3,7 @@
 // feature modular hello world
 
 import * as features from "./fm.ts";
-const { Feature, feature, on, after, before, fm, fx } = features;
+const { Feature, feature, on, after, before, fm} = features;
 
 
 //-----------------------------------------------------------------------------
@@ -19,7 +19,7 @@ const { Feature, feature, on, after, before, fm, fx } = features;
         console.log("hello world");
     }
     @after main() {
-        fx.hello();
+        fm.hello();
     }
 }
 
@@ -30,7 +30,7 @@ const { Feature, feature, on, after, before, fm, fx } = features;
         console.log("kthxbye");
     }
     @after main() {
-        fx.kthxbye();
+        fm.kthxbye();
     }
 }
 
@@ -41,17 +41,16 @@ const { Feature, feature, on, after, before, fm, fx } = features;
         console.log("10 9 8 7 6 5 4 3 2 1");
     }
     @before main() {
-        fx.countdown();
+        fm.countdown();
     }
 }
 
 console.log("ᕦ(ツ)ᕤ");
-console.log("ᕦ(ツ)ᕤ");
-console.log("features:");
-fm.readout_features();
-console.log("functions:");
-fm.readout_functions();
-
-fm.build_fx_disable(["Goodbye"]);
-
-fx.main();
+console.log("features: -----------------------------------");
+fm._manager.readout_features();
+console.log("functions: ----------------------------------");
+fm._manager.readout_functions();
+//fm._manager.disable(["Goodbye"]);
+fm._manager.build();
+console.log("run: ----------------------------------------");
+fm.main();
