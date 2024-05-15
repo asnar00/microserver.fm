@@ -61,7 +61,7 @@ Now let's add another new feature: let's be polite and say "goodbye" after we're
 
 Now, if you call `main()`, you'll get this:
 
-    hello world!
+    hello, world!
     kthxbye.
 
 Similarly, you can add behaviour before an existing function using the `@before` decorator:
@@ -76,7 +76,7 @@ Similarly, you can add behaviour before an existing function using the `@before`
 which results in this output from `main()`:
 
     10 9 8 7 6 5 4 3 2 1
-    hello world!
+    hello, world!
     kthxbye.
 
 ## disabling features
