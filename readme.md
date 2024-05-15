@@ -21,33 +21,30 @@ fm.ts is implemented using just four decorators, `@feature`, `@on`, `@after`, an
 
 A feature clause in fm.ts is declared by creating a class decorated with the `@feature` decorator, as follows:
 
-    @feature(Feature) class Main {
-        @on main() {
-        }
+    declare const main: () => void;         // the feature 'Main' declares a new function main()
+
+    @feature class Main extends Feature {
+        @on main() {}
     }
 
-This declares a new feature called `Main`, extending the base feature (`Feature`). (Aside: a better syntax here would be `feature Main extends Feature`, but to do that we need to get into typescript transformers, which is a future exercise). 
+This declares a new feature called `Main`, extending the base feature (`Feature`).
 
-The `@on` decorator turns the `main()` method into a function, and adds it to a global "context" object called `fm`.
+The `@on` decorator pokes the definition of the method `main` into the global function `main()`. This means you can just call it as if it were a normal function:
 
-To call `main()`, you do
-
-    fm.main()
+    main()
 
 which, because `main()` is empty, prints nothing. Amazing!
 
 If we want to add behaviour to this program, rather than editing the original definition of `main()`, we add a new feature clause that bolts the new functionality onto the existing definition.
 
-    @feature(Main) class Hello {
-        @on hello() {
-            console.log("hello world!");
-        }
-        @after main() {
-            fm.hello();
-        }
+    declare const hello: (name: string) => void;        // the feature 'Hello' declares a new function hello()
+
+    @feature class Hello extends Main {
+        @on hello(name: string) { console.log(`hello, ${name}!"); }
+        @on main() { hello("world"); }
     }
 
-Now, if you call `fm.main()`, you'll get some new behaviour:
+The `@on` decorator replaces the original definition of `main()` with the new function; so now, calling `main()` prints:
 
     hello world!
 
@@ -55,32 +52,28 @@ Notice the structure of this code: we first declare a new function using `@on`, 
 
 Now let's add another new feature: let's be polite and say "goodbye" after we're done.
 
-    @feature(Main) class Goodbye {
-        @on goodbye() {
-            console.log("kthxbye.");
-        }
-        @after main() {
-            fm.goodbye();
-        }
+    declare const bye: () => void;
+
+    @feature class Goodbye extends Main {
+        @on bye() { console.log("kthxbye."); }
+        @after main() { goodbye(); }
     }
 
-Now, if you call `fm.main()`, you'll get this:
+Now, if you call `main()`, you'll get this:
 
     hello world!
     kthxbye.
 
 Similarly, you can add behaviour before an existing function using the `@before` decorator:
 
-    @feature(Main) class Countdown {
-        @on countdown() {
-            console.log("10 9 8 7 6 5 4 3 2 1");
-        }
-        @before main() {
-            fm.countdown();
-        }
+    declare const countdown: () => void;
+
+    @feature class Countdown extends Main {
+        @on countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
+        @before main() { countdown(); }
     }
 
-which results in this output from `fm.main()`:
+which results in this output from `main()`:
 
     10 9 8 7 6 5 4 3 2 1
     hello world!
@@ -90,49 +83,42 @@ which results in this output from `fm.main()`:
 
 The power of this approach is that we can turn features on and off at runtime, changing the behaviour of the program. For example, we can disable the `Hello` feature like this:
 
-    fm._manager.disable(["Hello"]);
+    fm.disable(["Hello"]);
 
-which changes the output of `fm.main()` to:
+which changes the output of `main()` to:
 
     10 9 8 7 6 5 4 3 2 1
     kthxbye.
 
-To re-enable all features, we'd do:
+To re-enable all features, we do this:
 
-    fm._manager.disable([]);
+    fm.disable([]);
 
 ## debugging
 
 We can read out the tree of features and the list of functions, including current enable/disable states, like this:
 
-    fm._manager.readout();
+    fm.readout();
 
 Which prints
 
-    features: -----------------------------------
     Feature
     Main
         Hello
         Goodbye
         Countdown
 
-    functions: ----------------------------------
-    main: (Countdown.main before (Goodbye.main after (Hello.main after Main.main)))
-    hello: Hello.hello
-    bye: Goodbye.bye
-    countdown: Countdown.countdown
-
 If you disable a feature, its name is greyed out in the feature tree, and its children are not traversed.
 
 You can also turn on logging annotation, as follows:
 
-    fm._manager.debug(true);
+    fm.debug(true);
 
 Which adds the container feature and function name to each console line:
 
     10 9 8 7 6 5 4 3 2 1    ◀︎ Countdown.countdown
-    hello world             ◀︎ Hello.hello
-    kthxbye                 ◀︎ Goodbye.bye
+    hello world                     ◀︎ Hello.hello
+    kthxbye                         ◀︎ Goodbye.bye
 
 ## microserver.fm
 

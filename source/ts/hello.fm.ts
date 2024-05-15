@@ -2,49 +2,52 @@
 // hello.fm.ts
 // feature modular hello world
 
-import { Feature, feature, on, after, before, fm} from "./fm.ts";
+import { Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
 
 //-----------------------------------------------------------------------------
+// Main
 
-@feature(Feature) class Main {
-    @on main() {}
+declare const main: () => void;
+
+@feature class Main extends Feature {
+    @on main() { console.log("ᕦ(ツ)ᕤ"); }
 }
 
 //-----------------------------------------------------------------------------
+// Hello
 
-@feature(Main) class Hello {
-    @on hello() {
-        console.log("hello world");
-    }
-    @after main() {
-        fm.hello();
-    }
+declare const hello: (name: string) => void;
+
+@feature class Hello extends Main {
+    @on hello() { console.log("hello world"); }
+    @on main() { hello("asnaroo"); }
 }
 
 //-----------------------------------------------------------------------------
+// Goodbye
 
-@feature(Main) class Goodbye {
-    @on bye() {
-        console.log("kthxbye");
-    }
-    @after main() {
-        fm.bye();
-    }
+declare const bye: () => void;
+
+@feature class Goodbye extends Main {
+    @on bye() { console.log("kthxbye"); }
+    @after main() { bye(); }
 }
 
 //-----------------------------------------------------------------------------
+// Countdown
 
-@feature(Main) class Countdown {
-    @on countdown() {
-        console.log("10 9 8 7 6 5 4 3 2 1");
-    }
-    @before main() {
-        fm.countdown();
-    }
+declare const countdown: () => void;
+
+@feature class Countdown extends Main {
+    @on countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
+    @before main() { countdown(); }
 }
 
-console.log("ᕦ(ツ)ᕤ");
-fm._manager.readout();
+console_separator();
+//fm.disable(["Hello", "Countdown"]);
+fm.readout();
+fm.debug(true);
+console_separator();
+main();
 
-console.log("run: ----------------------------------------");
-fm.main();
+

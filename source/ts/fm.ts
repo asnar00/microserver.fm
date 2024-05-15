@@ -3,270 +3,13 @@
 // author: asnaroo
 // feature-modular typescript
 
-// fm is the "executable: enable/disable settings and actual functions
-export let fm: any = {};    // actual functions for all features
-fm["_disabled"] = {};       // disabled features
-
-let _stack: string[] = [];  // current callstack
-
 //------------------------------------------------------------------------------
-// fm is the main object that holds all the features and functions
+// logging
 
-// Feature is just a class with no methods
-export class Feature {}     // base feature
-
-// MetaFeature holds relationships, enable state
-class MetaFeature {
-    name: string;
-    parent: MetaFeature|null = null;
-    children: MetaFeature[] = [];
-    constructor(name: string, parent: string="") {
-        this.name = name;
-        if (parent != "") {
-            this.parent = fm._manager.metafeatures[parent];
-            this.parent!.children.push(this);
-        }
-        this.children = [];
-    }
-}
-
-// FeatureManager represents the code, all its static state
-export class FeatureManager {
-    features: any = {};          // all feature classes (instance of each)
-    metafeatures: any = {};      // metafeatures store relationships between features
-    composites: any = {};        // all composite functions (instance of each)
-    debugging: boolean = true;  // debug mode
-
-    constructor() {
-        this.features["Feature"] = new Feature();
-        this.metafeatures["Feature"] = new MetaFeature("Feature", "");
-    }
-
-    // readout features and functions
-    readout() {
-        console.log("features: -----------------------------------");
-        this.readout_features();
-        console.log("\nfunctions: ----------------------------------");
-        this.readout_functions();
-    }
-
-    // disable one or more features by name
-    disable(featuresToDisable: string[]) {
-        this.reset();
-        for(let f of featuresToDisable) { fm["_disabled"][f] = true;}
-        this.build_all();
-    }
-
-    // debug mode
-    debug(onOff: boolean) {
-        this.debugging = onOff;
-    }
-
-    private reset() {
-        for(let f in fm) { if (f[0]!="_") delete fm[f]; }
-        fm["_disabled"] = {};
-    }
-
-    // build all functions with the current enabled/disabled state
-    private build_all() {
-        for(let c in this.composites) {
-            this.build(c);
-        }
-    }
-
-    private build(compositeName: string) {
-        let func = this.build_function(this.composites[compositeName]);
-        if (func) {
-            fm[compositeName] = func;
-        } else {
-            delete fm[compositeName];
-        }
-    }
-
-    // true if feature and all parents are enabled
-    private enabled(featureName: string): boolean {
-        let result = true;
-        let mf = this.metafeatures[featureName];
-        while (mf && result) {
-            result = result && (!fm._disabled[mf.name]);
-            mf = mf.parent;
-        }
-        return result;
-    }
-
-    // print a tree of features, with disabled ones greyed out and stubbed
-    private readout_features(mf: MetaFeature|null=null) {
-        if (!mf) mf = this.metafeatures["Feature"];
-        let enabled = this.enabled(mf!.name);
-        if (enabled) { console.log(`${mf!.name}`); }
-        else { console.log(console_grey(mf!.name)); }
-        if (!enabled) return;
-        console_indent();
-        for(let c of mf!.children) {
-            this.readout_features(c);
-        }
-        console_undent();
-    }
-
-    // print composite-definitions of all functions
-    private readout_functions() {
-        for(let c in this.composites) {
-            if (fm[c]) {
-               console.log(`${c}: ${this.composites[c].toString()}`);
-            }
-        }
-    }
-
-    private build_function(composite : CompositeFunction) : Function|null {
-        let result : Function|null = null;
-        if (composite.type == "on") {
-            result = this.build_on(composite);
-        } else if (composite.type == "before") {
-            result = this.build_before(composite);
-        } else if (composite.type == "after") {
-            result = this.build_after(composite);
-        }
-        return result;
-    }
-
-    private build_on(composite: CompositeFunction) : Function|null {
-        return this.build_single(composite.fn);
-    }
-
-    private build_before(composite: CompositeFunction) : Function|null {
-        let func = this.build_single(composite.fn);
-        let existing = this.build_function(composite.existing!);
-        if (!func) return existing;
-        if (!existing) return func;
-        return function (...args: any[]) {
-            let result: any = func.apply(fm._manager.composites[composite.fn.featureName], args);
-            if (result instanceof Promise) {
-                return result.then((result: any) => {
-                    if (result) return result;
-                    return existing!.apply(fm._manager.composites[composite.fn.featureName], args);
-                });
-            } else {
-                if (result) return result;
-                return existing!.apply(fm._manager.composites[composite.fn.featureName], args);
-            }
-        };
-    }
-
-    private build_after(composite: CompositeFunction) : Function|null {
-        let func = this.build_single(composite.fn);
-        let existing = this.build_function(composite.existing!);
-        if (!func) return existing;
-        if (!existing) return func;
-        return function (...args: any[]) {
-            let _result: any = existing!.apply(fm._manager.composites[composite.fn.featureName], args);
-            if (_result instanceof Promise) {
-                return _result.then((result: any) => {
-                    _result = result;
-                    return func.apply(fm._manager.composites[composite.fn.featureName], [args, _result]);
-                });
-            } else {
-                return func.apply(fm._manager.composites[composite.fn.featureName], [args, _result]);
-            }
-        };
-    }
-
-    private build_single(fn: FeatureFunction) : Function|null {
-        if (!this.enabled(fn.featureName)) return null;
-        return function (...args: any[]) {
-            if (fm._manager.debugging) {
-                _stack.push(fn.toString());
-                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
-            }
-            let result: any = fn.descriptor.value.apply(fm._manager.composites[fn.featureName], args);  
-            if (fm._manager.debugging) {
-                _stack.pop();
-                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
-            }
-            return result;
-        };
-    }
-}
-
-fm['_manager'] = new FeatureManager();
-
-//------------------------------------------------------------------------------
-// On, Before, After classes
-
-// FeatureFunction refers to a specific method defined in a feature clause
-class FeatureFunction { 
-    featureName: string;
-    methodName: string;
-    descriptor: PropertyDescriptor;
-    constructor(featureName: string, methodName: string, descriptor: PropertyDescriptor) {
-        this.featureName = featureName;
-        this.methodName = methodName;
-        this.descriptor = descriptor;
-    }
-    toString() : string { return `${this.featureName}.${this.methodName}`; }
-}
-
-// CompositeFunction is a monolithic function constructed from FeatureFunctions
-class CompositeFunction {
-    type: string;
-    fn: FeatureFunction;
-    existing: CompositeFunction|undefined;
-    constructor(type: string, fn: FeatureFunction, existing: CompositeFunction|undefined = undefined) {
-        this.type = type;
-        this.fn = fn;
-        this.existing = existing;
-    }
-    toString() : string {
-        if (this.existing) {
-            let fn = (fm._disabled[this.fn.featureName]) ? "" : this.fn.toString();
-            let existing = this.existing.toString();
-            if (fn=="") return existing; else if (existing=="") return fn;
-            return `(${this.fn.toString()} ${this.type} ${this.existing.toString()})`;
-        } else {
-            return (fm._disabled[this.fn.featureName]) ? "" : this.fn.toString();
-        }
-    }
-}
-
-// add a new composite function to cf
-function addComposite(type: string, featureName: string, fn: string, descriptor: PropertyDescriptor) {
-    let newFn = new FeatureFunction(featureName, fn, descriptor);
-    let existing = fm._manager.composites[fn];
-    let newComposite = new CompositeFunction(type, newFn, existing);
-    fm._manager.composites[fn] = newComposite;
-    fm._manager.build(fn);
-}
-
-//------------------------------------------------------------------------------
-// decorators
-
-export function feature(TargetClass: { new(...args: any[]): {} }) {
-    return function (constructor: { new(...args: any[]): any }) {
-        const className = constructor.name;
-        const parentName = TargetClass.name;
-        fm[className] = new constructor();
-        fm._manager.features[className] = fm[className];
-        fm._manager.metafeatures[className] = new MetaFeature(className, parentName);
-    }
-}
-
-export function on(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    addComposite("on", target.constructor.name, propertyKey, descriptor);
-}
-
-export function before(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    addComposite("before", target.constructor.name, propertyKey, descriptor);
-}
-
-export function after(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    addComposite("after", target.constructor.name, propertyKey, descriptor);
-}
-
-//------------------------------------------------------------------------------
-
-let _result: any= null;     // allows @after methods to sneak a result into the original method
-let _existing: any= null;   // allows @replace methods to sneak the original method into the new method
 let _indent: string = "";   // start of each console for indenting
 let _suffix: string = "";   // at the end of each console line, print this in grey
+let _stack: string[] = [];  // current callstack
+let _width: number = 100;    // width of the console
 
 function formatLog(...args: any[]): string {
     // Convert all arguments to strings and handle objects specifically
@@ -284,7 +27,21 @@ function formatLog(...args: any[]): string {
         }
     }).join(' '); // Join all parts with a space, similar to how console.log does
     if (_suffix != "") {
-        outstr += "\t" + console_grey(_suffix);
+        let crstr = "";
+        while(outstr.length >= _width) {
+            crstr += outstr.slice(0, _width) + "\n";
+            outstr = outstr.slice(_width);
+        }
+    
+        let nSpaces = _width - outstr.length - _suffix.length 
+        if (nSpaces > 0) {
+            crstr += outstr + " ".repeat(nSpaces);
+            crstr += console_grey(_suffix);
+        } else {
+            crstr += outstr + "\n";
+            crstr += " ".repeat(_width - _suffix.length) + console_grey(_suffix);
+        }
+        return crstr;
     }
     return outstr;
 }
@@ -293,9 +50,290 @@ const originalConsoleLog = console.log;     // Store the original console.log fu
 console.log = (...args) => {                // Override console.log
     originalConsoleLog(_indent + formatLog(...args)); 
 };
-const console_indent = () => { _indent += "  "; };  // Add two spaces to the indentation
-const console_undent = () => { _indent = _indent.slice(0, -2); };  // Remove two spaces from the indentation
+export const console_indent = () => { _indent += "  "; };  // Add two spaces to the indentation
+export const console_undent = () => { _indent = _indent.slice(0, -2); };  // Remove two spaces from the indentation
+export const console_separator = () => { console.log("-".repeat(_width)); };  // Print a separator line
+export function console_grey(str: string) : string { return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`; }
 
-function console_grey(str: string) : string {
-   return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`;
+//------------------------------------------------------------------------------
+// base class of all feature clauses
+
+export class Feature {
 }
+
+//------------------------------------------------------------------------------
+// MetaFeature / MetaFunction
+
+// everything there is to know about a Feature
+class MetaFeature {
+    instance: Feature|null = null;              // singleton instance
+    name: string;                               // name of the feature
+    functions: MetaFunction[] = [];             // all the functions we define, including decorators
+    parent: MetaFeature | null = null;          // feature we extend
+    children: MetaFeature[] = [];               // all features that extend this feature
+    enabled: boolean = true;                    // whether this feature is enabled (and children)
+    static _all : MetaFeature[] = [];           // all features in declaration order
+    static _byname : { [name: string]: MetaFeature } = {}; // map feature name to MetaFeature
+
+    constructor(name: string) {                 // called by all decorators, potentially out of order
+        this.name = name;
+        MetaFeature._all.push(this);
+        MetaFeature._byname[name] = this;
+    }
+
+    initialise(parentName: string="", instance: Feature) {          // called by @feature decorator handler
+        this.instance = instance;
+        this.parent = MetaFeature._byname[parentName] || null;
+        if (this.parent) { this.parent.children.push(this); }
+    }
+
+    static _findOrCreate(name: string) {                            // called by all decorators
+        let mf = MetaFeature._byname[name];
+        if (!mf) { mf = new MetaFeature(name); }
+        return mf;
+    }
+
+    isEnabled() : boolean {
+        let parent = this.parent;
+        let enabled = this.enabled;
+        while(parent && enabled) {
+            enabled &&= parent.enabled;
+            parent = parent.parent;
+        }
+        return enabled;
+    }
+}
+
+// everything there is to know about a function defined inside a feature
+class MetaFunction {
+    name: string;               // as it appears in global space
+    method: Function;           // function (...args: any[]): any
+    decorator: string;          // on, after, before
+    constructor(name: string, method: Function, decorator: string) {
+        this.name = name;
+        this.method = method;
+        this.decorator = decorator;
+    }
+}
+
+let _metaFeature = new MetaFeature("Feature");
+_metaFeature.initialise("", new Feature());
+
+//------------------------------------------------------------------------------
+// decorators
+
+// @feature decorator handler
+export function feature<T extends { new (...args: any[]): {} }>(constructor: T) {
+    const className = constructor.name;
+    const prototype = Object.getPrototypeOf(constructor.prototype);
+    const superClassConstructor = prototype ? prototype.constructor : null;
+    const superClassName = superClassConstructor ? superClassConstructor.name : 'None';
+    const mf = MetaFeature._findOrCreate(className);
+    const instance = new constructor();
+    mf.initialise(superClassName, instance);
+    fm.buildFeature(mf);
+}
+
+// @on decorator handler
+export function on(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.functions.push(new MetaFunction(propertyKey, method, "on"));
+}
+
+// @after decorator handler
+export function after(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.functions.push(new MetaFunction(propertyKey, method, "after"));
+}
+
+// @before decorator handler
+export function before(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.functions.push(new MetaFunction(propertyKey, method, "before"));
+}
+
+//------------------------------------------------------------------------------
+// global function manipulator (warning: affects "global" i.e. module scope)
+
+// Create a global function registry
+const functionRegistry: { [key: string]: Function } = {};
+
+// Create a Proxy handler
+const handler: ProxyHandler<typeof globalThis> = {
+    set(target, property, value) {
+        if (typeof value === 'function') {
+            functionRegistry[property as string] = value;
+        }
+        return Reflect.set(target, property, value);
+    }
+};
+
+// Create a Proxy for globalThis
+const proxiedGlobalThis = new Proxy(globalThis, handler);
+
+// returns true if a function is async
+type AsyncFunction = (...args: any[]) => Promise<any>;
+
+function isAsyncFunction(fn: Function): fn is AsyncFunction {
+    return fn.constructor.name === 'AsyncFunction';
+}
+
+//------------------------------------------------------------------------------
+// Feature Manager
+
+export class FeatureManager {
+    isDebugging: boolean = false;
+
+    disable(featureNames: string[]) {
+        for(let mf of MetaFeature._all) {
+            mf.enabled = true;
+        }
+        for(let name of featureNames) {
+            let mf = MetaFeature._byname[name];
+            if (mf) { mf.enabled = false; }
+        }
+        this.rebuild();
+    }
+
+    readout(mf: MetaFeature|null=null) {
+        if (!mf) mf = _metaFeature.children[0];
+        if (mf.isEnabled()) {
+            console.log(mf.name);
+            console_indent();
+            for (let c of mf.children) {
+                this.readout(c);
+            }
+            console_undent();
+        } else {
+            console.log(console_grey(mf.name));
+        }
+    }
+
+    debug(onOff: boolean) {
+        this.isDebugging = onOff;
+        this.rebuild();
+    }
+
+    rebuild() {
+        this.clearModuleScopeFunctions();
+        for(let mf of MetaFeature._all) {
+            if (mf.isEnabled()) { this.buildFeature(mf); }
+        }
+    }
+
+    buildFeature(mf: MetaFeature) {
+        for(let mfn of mf.functions) { 
+            let newFunction = this.buildFunction(mf, mfn);
+            if (this.isDebugging) {
+                newFunction = this.logFunction(mf, mfn, newFunction);
+            }
+            this.replaceModuleScopeFunction(mfn.name, newFunction);
+        }
+    }
+
+    logFunction(mf: MetaFeature, mfn: MetaFunction, func: Function) : Function {
+        if (isAsyncFunction(func)) {
+            return async function (...args: any[]) {
+                _stack.push(`${mf.name}.${mfn.name}`);
+                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+                const result = await func(...args);
+                _stack.pop();
+                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length-1]}` : '';
+                return result;
+            };
+        } else {
+            return function (...args: any[]) {
+                _stack.push(`${mf.name}.${mfn.name}`);
+                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+                const result = func(...args);
+                _stack.pop();
+                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length-1]}` : '';
+                return result;
+            };
+        }
+    }
+
+    buildFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        if (mfn.decorator == "on") { return this.buildOnFunction(mf, mfn); }
+        else if (mfn.decorator == "after") { return this.buildAfterFunction(mf, mfn); }
+        else if (mfn.decorator == "before") { return this.buildBeforeFunction(mf, mfn); }
+        else { throw new Error(`unknown decorator ${mfn.decorator}`); }
+    }
+
+    buildOnFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        const boundMethod = mfn.method.bind(mf.instance);
+        return boundMethod;
+    }
+
+    buildAfterFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) { throw new Error(`function ${mfn.name} not found`); }
+        if (isAsyncFunction(originalFunction)) {
+            const newFunction = async function (...args: any[]) {
+                let _result = await originalFunction(...args);
+                return mfn.method.apply(mf.instance, [...args, _result]);
+            };
+            return newFunction;
+        } else {
+            const newFunction = function (...args: any[]) {
+                let _result = originalFunction(...args);
+                return mfn.method.apply(mf.instance, [...args, _result]);
+            };
+            return newFunction;
+        }
+    }
+
+    buildBeforeFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) { throw new Error(`function ${mfn.name} not found`); }
+        if (isAsyncFunction(originalFunction)) {
+            const newFunction =  async function (...args: any[]) {
+                const newResult = await mfn.method.apply(mf.instance, args);
+                if (newResult !== undefined) { return newResult; }
+                return originalFunction(...args);
+            };
+            return newFunction;
+        } else {
+            const newFunction = function (...args: any[]) {
+                const newResult = mfn.method.apply(mf.instance, args);
+                if (newResult !== undefined) { return newResult; }
+                return originalFunction(...args);
+            };
+            return newFunction;
+        }
+    }
+
+    replaceModuleScopeFunction(name: string, newFn: Function) {
+        if (functionRegistry[name]) {
+            (proxiedGlobalThis as any)[name] = newFn;
+        } else {
+            this.defineModuleScopeFunction(name, newFn);
+        }
+    }
+
+    defineModuleScopeFunction(name: string, fn: Function) {
+        (proxiedGlobalThis as any)[name] = fn;
+    }
+
+    listModuleScopeFunctions() {
+        console.log("Defined functions:", Object.keys(functionRegistry));
+    }
+
+    clearModuleScopeFunctions() {
+        for(let name of Object.keys(functionRegistry)) {
+            delete (proxiedGlobalThis as any)[name];
+        }
+    }
+
+    getModuleScopeFunction(name: string) {
+        return functionRegistry[name];
+    }
+}
+
+export const fm = new FeatureManager();

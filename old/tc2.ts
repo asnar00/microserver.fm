@@ -28,10 +28,10 @@ function listFunctions() {
 function replaceModuleScopeFunction(name: string, newFn: Function) {
     if (functionRegistry[name]) {
         (proxiedGlobalThis as any)[name] = newFn;
-        console.log(`Function ${name} has been replaced.`);
+        console.log(`    extending ${name}`);
     } else {
         defineFunction(name, newFn);
-        console.log(`Function ${name} has been defined.`);
+        console.log(`    defining ${name}`);
     }
 }
 
@@ -76,7 +76,6 @@ function feature<T extends { new (...args: any[]): {} }>(constructor: T) {
 // decorator "on"
 
 function on(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    console.log("on", propertyKey);
 
     const method = descriptor.value;
     const className = target.constructor.name;
