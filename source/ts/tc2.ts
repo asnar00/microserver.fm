@@ -39,6 +39,8 @@ function replaceModuleScopeFunction(name: string, newFn: Function) {
 class Feature {
     static _all: any[] = [];
     static _byname: any = {};
+    _originals: any = {};
+    _replacements: any = {};
     constructor() {}
     enable() {}
     disable() {}
