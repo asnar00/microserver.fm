@@ -2,9 +2,7 @@
 // hello.fm.ts
 // feature modular hello world
 
-import * as features from "./fm.ts";
-const { Feature, feature, on, after, before, fm} = features;
-
+import { Feature, feature, on, after, before, fm} from "./fm.ts";
 
 //-----------------------------------------------------------------------------
 
