@@ -9,7 +9,7 @@
 let _indent: string = "";   // start of each console for indenting
 let _suffix: string = "";   // at the end of each console line, print this in grey
 let _stack: string[] = [];  // current callstack
-let _width: number = 100;    // width of the console
+let _width: number = 80;    // width of the console
 
 function formatLog(...args: any[]): string {
     // Convert all arguments to strings and handle objects specifically

@@ -1,5 +1,10 @@
 # scribbles
 
+So let's think about the next step with this.
+
+We want to program in 
+
+_____________________________________________________________________
 Things that the framework needs:
 
 1. a decent declaration syntax:

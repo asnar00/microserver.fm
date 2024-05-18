@@ -46,7 +46,7 @@ If we want to add behaviour to this program, rather than editing the original de
 
 The `@on` decorator replaces the original definition of `main()` with the new function; so now, calling `main()` prints:
 
-    hello world!
+    hello, world!
 
 Notice the structure of this code: we first declare a new function using `@on`, and then we 'plug it in' to the existing program using `@after`. This just means "add a call to `hello` to the end of `main`".
 
@@ -117,7 +117,7 @@ You can also turn on logging annotation, as follows:
 Which adds the container feature and function name to each console line:
 
     10 9 8 7 6 5 4 3 2 1    ◀︎ Countdown.countdown
-    hello world                     ◀︎ Hello.hello
+    hello, world!                   ◀︎ Hello.hello
     kthxbye                         ◀︎ Goodbye.bye
 
 ## microserver.fm
