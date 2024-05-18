@@ -56,7 +56,7 @@ Now let's add another new feature: let's be polite and say "goodbye" after we're
 
     @feature class Goodbye extends Main {
         @on bye() { console.log("kthxbye."); }
-        @after main() { goodbye(); }
+        @after main() { bye(); }
     }
 
 Now, if you call `main()`, you'll get this:
