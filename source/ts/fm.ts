@@ -281,6 +281,7 @@ export class FeatureManager {
             };
             return newFunction;
         } else {
+            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 let _result = originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
@@ -300,6 +301,7 @@ export class FeatureManager {
             };
             return newFunction;
         } else {
+            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 const newResult = mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }

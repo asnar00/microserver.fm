@@ -37,13 +37,7 @@ declare const startServer: () => Promise<void>;
     }
     @on async receiveRequest(req: Request): Promise<Response|undefined> {
         console.log(req.method, req.url);
-        let result= undefined;
-        try {
-            result = handler(req);
-        } catch (error: any) {
-            result = new Response("Exception: " + error.message, { status: 500 });
-        }
-        return result;
+        return handler(req);
     }
     @on async startServer() {
         deno_http.serve(receiveRequest, { port: 8000 });
