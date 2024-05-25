@@ -58,7 +58,7 @@ export function console_grey(str: string) : string { return `\x1b[48;5;234m\x1b[
 //------------------------------------------------------------------------------
 // base class of all feature clauses
 
-export class Feature {
+export class _Feature {
 }
 
 //------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ export class Feature {
 
 // everything there is to know about a Feature
 class MetaFeature {
-    instance: Feature|null = null;              // singleton instance
+    instance: _Feature|null = null;             // singleton instance
     name: string;                               // name of the feature
     functions: MetaFunction[] = [];             // all the functions we define, including decorators
     parent: MetaFeature | null = null;          // feature we extend
@@ -81,7 +81,7 @@ class MetaFeature {
         MetaFeature._byname[name] = this;
     }
 
-    initialise(parentName: string="", instance: Feature) {          // called by @feature decorator handler
+    initialise(parentName: string="", instance: _Feature) {         // called by @feature decorator handler
         this.instance = instance;
         this.parent = MetaFeature._byname[parentName] || null;
         if (this.parent) { this.parent.children.push(this); }
@@ -117,7 +117,7 @@ class MetaFunction {
 }
 
 let _metaFeature = new MetaFeature("Feature");
-_metaFeature.initialise("", new Feature());
+_metaFeature.initialise("", new _Feature());
 
 //------------------------------------------------------------------------------
 // decorators
@@ -128,6 +128,7 @@ export function feature<T extends { new (...args: any[]): {} }>(constructor: T) 
     const prototype = Object.getPrototypeOf(constructor.prototype);
     const superClassConstructor = prototype ? prototype.constructor : null;
     const superClassName = superClassConstructor ? superClassConstructor.name : 'None';
+    if (!className.startsWith("_")) { throw new Error(`Feature class name must start with an underscore: ${className}`); }
     const mf = MetaFeature._findOrCreate(className);
     const instance = new constructor();
     mf.initialise(superClassName, instance);

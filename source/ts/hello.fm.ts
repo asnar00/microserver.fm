@@ -2,14 +2,14 @@
 // hello.fm.ts
 // feature modular hello world
 
-import { Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
+import { _Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
 
 //-----------------------------------------------------------------------------
 // Main
 
 declare const main: () => void;
 
-@feature class Main extends Feature {
+@feature class _Main extends _Feature {
     @on main() { console.log("ᕦ(ツ)ᕤ"); }
 }
 
@@ -18,7 +18,7 @@ declare const main: () => void;
 
 declare const hello: (name: string) => void;
 
-@feature class Hello extends Main {
+@feature class _Hello extends _Main {
     @on hello() { console.log("hello world"); }
     @on main() { hello("asnaroo"); }
 }
@@ -28,7 +28,7 @@ declare const hello: (name: string) => void;
 
 declare const bye: () => void;
 
-@feature class Goodbye extends Main {
+@feature class _Goodbye extends _Main {
     @on bye() { console.log("kthxbye"); }
     @after main() { bye(); }
 }
@@ -38,13 +38,13 @@ declare const bye: () => void;
 
 declare const countdown: () => void;
 
-@feature class Countdown extends Main {
+@feature class _Countdown extends _Main {
     @on countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
     @before main() { countdown(); }
 }
 
 console_separator();
-//fm.disable(["Hello", "Countdown"]);
+//fm.disable(["_Hello", "_Countdown"]);
 fm.readout();
 fm.debug(true);
 console_separator();

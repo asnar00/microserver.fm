@@ -7,14 +7,14 @@ import * as deno_http from "https://deno.land/std@0.165.0/http/server.ts";
 import * as deno_file from "https://deno.land/std@0.165.0/http/file_server.ts";
 import * as features from "./fm.ts";
 
-const { Feature, feature, on, after, before, fm, console_separator } = features;
+const { _Feature, feature, on, after, before, fm, console_separator } = features;
 
 //------------------------------------------------------------------------------
 // Main doesn't do much
 
 declare const main: () => Promise<void>;
 
-@feature class Main extends Feature {
+@feature class _Main extends _Feature {
     @on async main() {
         console.log("microserver.fm");
     }
@@ -28,7 +28,7 @@ declare const handler: (req: Request) => Promise<Response|undefined>;
 declare const receiveRequest: (req: Request) => Promise<Response>;
 declare const startServer: () => Promise<void>;
 
-@feature class Server extends Main {
+@feature class _Server extends _Main {
     @on async notFound() : Promise<Response> {
         return new Response("Not found", { status: 404 });
     }
@@ -54,7 +54,7 @@ declare const getPathFromUrl: (url: string) => string;
 declare const translatePath: (url: string) => string;
 declare const serveFile: (req: Request) => Promise<Response|undefined>;
 
-@feature class Get extends Server {
+@feature class _Get extends _Server {
     static publicFolder: string = Deno.cwd().replaceAll("/source/ts", "/public");
     
     @on getPathFromUrl(url: string): string {
@@ -63,12 +63,12 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
     @on translatePath(url: string): string {
         let path = getPathFromUrl(url);
         if (path=='/') { path = '/index.html'; }
-        return Get.publicFolder + path;
+        return _Get.publicFolder + path;
     }
     @on async serveFile(req: Request): Promise<Response|undefined> {
         let path = translatePath(req.url);
         if (path) {
-            console.log(path.replace(Get.publicFolder, ""));
+            console.log(path.replace(_Get.publicFolder, ""));
             return await deno_file.serveFile(req, path); 
         }
     }
@@ -84,7 +84,7 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
 
 declare const callFunction: (req: Request) => Promise<Response|undefined>;
 
-@feature class Put extends Server {
+@feature class _Put extends _Server {
     @on async callFunction(req: Request): Promise<Response|undefined> {
         let functionName = getPathFromUrl(req.url).slice(1);
         let params = await req.json();
@@ -105,7 +105,7 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
 //------------------------------------------------------------------------------
 // Greet adds a "greet" function that returns a greeting
 
-@feature class Greet extends Put {
+@feature class _Greet extends _Put {
     @on greet(name: string): string {
         let result = `Hello, ${name}!`;
         console.log(result);

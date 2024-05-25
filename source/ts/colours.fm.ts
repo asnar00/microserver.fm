@@ -2,15 +2,16 @@
 // colours.fm.ts
 // feature modular struct extension
 
-import { Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
+import { _Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
 
 interface Colour {
     r: number; g: number; b: number;
 }
 
 //declare const colour: (r: number, g: number, b: number) => Colour;
+declare const add_colours: (c1: Colour, c2: Colour) => Colour; 
 
-@feature class _Colour extends Feature {
+@feature class _RGBColour extends _Feature {
     @on colour(r: number=0, g: number=0, b: number=0): Colour {
         return {r, g, b} as Colour;
     }
@@ -24,7 +25,7 @@ interface Colour {
 }
 declare const colour: (r?: number, g?: number, b?: number, a?:number) => Colour;
 
-@feature class _ColourAlpha extends _Colour {
+@feature class _RGBAColour extends _RGBColour {
     @on colour(r: number=0, g: number=0, b: number=0, a: number=1): Colour {
         return {r, g, b, a} as Colour;
     }
@@ -34,8 +35,12 @@ declare const colour: (r?: number, g?: number, b?: number, a?:number) => Colour;
 }
 
 function main() {
-    let col  = colour(1, 0, 0.5);
-    console.log(col);
+    let col1  = colour(1, 0, 0.5);
+    console.log("col1:", col1);
+    let col2 = colour(1, 0.5, 1, 0.5);
+    console.log("col2:", col2);
+    let col3 = add_colours(col1, col2);
+    console.log("col3:", col3);
 }
 
 main();

@@ -23,11 +23,11 @@ A feature clause in fm.ts is declared by creating a class decorated with the `@f
 
     declare const main: () => void;         // the feature 'Main' declares a new function main()
 
-    @feature class Main extends Feature {
+    @feature class _Main extends _Feature {
         @on main() {}
     }
 
-This declares a new feature called `Main`, extending the base feature (`Feature`).
+This declares a new feature called `_Main`, extending the base feature (`_Feature`). Note: all feature names start with an underscore in order to avoid name collision with class names.
 
 The `@on` decorator pokes the definition of the method `main` into the global function `main()`. This means you can just call it as if it were a normal function:
 
@@ -39,7 +39,7 @@ If we want to add behaviour to this program, rather than editing the original de
 
     declare const hello: (name: string) => void;        // the feature 'Hello' declares a new function hello()
 
-    @feature class Hello extends Main {
+    @feature class _Hello extends _Main {
         @on hello(name: string) { console.log(`hello, ${name}!"); }
         @on main() { hello("world"); }
     }
@@ -54,7 +54,7 @@ Now let's add another new feature: let's be polite and say "goodbye" after we're
 
     declare const bye: () => void;
 
-    @feature class Goodbye extends Main {
+    @feature class _Goodbye extends _Main {
         @on bye() { console.log("kthxbye."); }
         @after main() { bye(); }
     }
@@ -68,7 +68,7 @@ Similarly, you can add behaviour before an existing function using the `@before`
 
     declare const countdown: () => void;
 
-    @feature class Countdown extends Main {
+    @feature class _Countdown extends _Main {
         @on countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
         @before main() { countdown(); }
     }
@@ -78,6 +78,64 @@ which results in this output from `main()`:
     10 9 8 7 6 5 4 3 2 1
     hello, world!
     kthxbye.
+
+## structs and struct extension
+
+Because fm.ts seeks to replace object-orientation with feature modularity, fm.ts code doesn't define objects or methods. Instead, all code is expressed as functions bound to features, and all data is expressed using value-types, equivalent to C structs or straight js dictionaries (mapping name => value). To take advantage of typescript type-checking, we use interfaces.
+
+The `colours.fm.ts` example demonstrates this using an RGB colour that we then later extend by adding an alpha property. The canonical fm.ts way of implementing this is as follows:
+
+First, we define the `Colour` interface (type):
+
+    interface Colour {
+        r: number; g: number; b: number;
+    }
+
+Then declare a `colour` constructor (notice: the name is lowercase, because it's a function):
+
+    declare const colour: (r?: number, g?: number, b?: number) => Colour;
+
+ ... and a function `add_colours` (because typescript doesn't support multi-method syntax, we have to put the type name in the function name). 
+
+    declare const add_colours: (c1: Colour, c2: Colour) => Colour; 
+
+Finally we declare the feature `_RGBColour`, which defines the `colour` constructor and sets up the default values of each property, as well as defining the component-by-component addition.
+
+    @feature class _RGBColour extends _Feature {
+        @on colour(r: number=0, g: number=0, b: number=0): Colour {
+            return {r, g, b} as Colour;
+        }
+        @on add_colours(c1: Colour, c2: Colour): Colour {
+            return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
+        }
+    }
+
+Now we add a new feature, `_RGBAColour`, which adds an alpha property to `Colour`. 
+
+First we extend the Colour interface to add alpha:
+
+    interface Colour {
+        a: number;
+    }
+
+Then declare the new constructor function `colour`: 
+
+    declare const colour: (r?: number, g?: number, b?: number, a?:number) => Colour;
+
+Because typescript doesn't allow us to `declare` the same property twice in the same file, we need to return to the original `declare const colour` line and comment it out (this is a deficiency addressed by the forthcoming fm.ts.md concept), but aside from this wrinkle it's fairly straightforward.
+
+Next, we define the new feature which redefines the `colour` constructor and `add_colours`:
+
+    @feature class _RGBAColour extends _RGBColour {
+        @on colour(r: number=0, g: number=0, b: number=0, a: number=1): Colour {
+            return {r, g, b, a} as Colour;
+        }
+        @on add_colours(c1: Colour, c2: Colour): Colour {
+            return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a);
+        }
+    }
+
+Note that `add_colours` has to re-specify the addition of `r`, `g` and `b`, which isn't ideal: it should be able to call the existing `colour` constructor and then add the alpha components. This will be the next improvement.
 
 ## disabling features
 
@@ -152,6 +210,8 @@ Feature-modular typescript ("fm.ts") is ordinary typescript augmented with a set
 
 ## future work
 
+- tests
+- structure instances tagged with supported features
 - specifying client and server code in the same feature
 - multiple contexts: switch between different feature-groups
 - debugging workflows: automated logging, fault tracing
