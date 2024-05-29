@@ -85,58 +85,60 @@ Because fm.ts seeks to replace object-orientation with feature modularity, fm.ts
 
 The `colours.fm.ts` example demonstrates this using an RGB colour that we then later extend by adding an alpha property. The canonical fm.ts way of implementing this is as follows:
 
-First, we define the `Colour` class (type):
+First, we define a base feature `_Colour` that sets up our basic RGB `Colour` struct, and a function `add_colours` that adds the r, g, and b components:
 
-    class Colour {
-        r: number=0; g: number=0; b: number=0;
-    }
+    @struct class Colour { r: number =0; g: number =0; b: number =0; }
 
-Then declare a `colour` constructor (notice: the name is lowercase, because it's a function):
+    declare const add_colours: (c1: Colour, c2: Colour) => Colour;
+    declare const test: () => void;
 
-    declare const colour: (r?: number, g?: number, b?: number) => Colour;
-
- ... and a function `add_colours` (because typescript doesn't support multi-method syntax, we have to put the type name in the function name). 
-
-    declare const add_colours: (c1: Colour, c2: Colour) => Colour; 
-
-Finally we declare the feature `_RGBColour`, which defines the `colour` constructor and sets up the default values of each property, as well as defining the component-by-component addition.
-Note the `construct` helper function that creates an instance of Colour and sets its properties in one call.
-
-    @feature class _RGBColour extends _Feature {
-        @on colour(r: number=0, g: number=0, b: number=0): Colour {
-            return construct(Colour, { r, g, b });
-        }
+    @feature class _Colour extends _Feature {
         @on add_colours(c1: Colour, c2: Colour): Colour {
-            return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
+            return make(Colour, {r: c1.r + c2.r, g: c1.g + c2.g, b: c1.b + c2.b});
+        }
+        @on test() {
+            const rgb1 = make(Colour, {r:1, b: 2});
+            const rgb2 = make(Colour, {r:0, g: 2});
+            const rgb3 = add_colours(rgb1, rgb2);
+            console.log("rgb3", rgb3);
         }
     }
 
-Now we add a new feature, `_RGBAColour`, which adds an alpha property to `Colour`. 
+Note here: the `make` helper function that lets you specify parameters by name, in any order, ensuring that the defaults are applied properly, but without having to define a constructor in the class declaration.
 
-First we extend the Colour interface to add alpha:
+Running `main()` with just this feature defined prints the following:
 
-    interface Colour {
-        a: number;
+    rgb3 {
+        "r": 1,
+        "g": 2,
+        "b": 2
     }
 
-Then declare the new constructor function `colour`: 
+Next, we add a feature to extend the `Colour` structure with an alpha property `a`, and extend the `add_colours` function to also add the new `a` components.
 
-    declare const colour: (r?: number, g?: number, b?: number, a?:number) => Colour;
+    interface Colour { a: number; }
+    @extend(Colour) class Alpha { a: number = 0.5; }
 
-Because typescript doesn't allow us to `declare` the same property twice in the same file, we need to return to the original `declare const colour` line and comment it out (this is a deficiency addressed by the forthcoming fm.ts.md concept), but aside from this wrinkle it's fairly straightforward.
-
-Next, we define the new feature which redefines the `colour` constructor and `add_colours`:
-
-    @feature class _RGBAColour extends _RGBColour {
-        @on colour(r: number=0, g: number=0, b: number=0, a: number=1): Colour {
-            return {r, g, b, a} as Colour;
-        }
+    @feature class _AlphaColour extends _Colour {
         @on add_colours(c1: Colour, c2: Colour): Colour {
-            return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a);
+            return { ... this.existing(add_colours)(c1, c2), a: c1.a + c2.a };
         }
     }
 
-Note that `add_colours` has to re-specify the addition of `r`, `g` and `b`, which isn't ideal: it should be able to call the existing `colour` constructor and then add the alpha components. This will be the next improvement.
+Note here: 
+
+- we have to extend the interface of the original `Colour` class
+- we use the `@extend` decorator to add the properties of the new class to `Colour`
+- we use the slightly clumsy syntax `this.existing()` which finds the definition of `add_colours` as it existed before the definition of the new feature.
+
+Calling `main()` now prints this:
+
+    rgb3 {
+        "r": 1,
+        "g": 2,
+        "b": 2,
+        "a": 1
+    }
 
 ## disabling features
 
@@ -211,7 +213,8 @@ Feature-modular typescript ("fm.ts") is ordinary typescript augmented with a set
 
 ## future work
 
-- tests
+- improve console.log print format for composite structs
+- tests!
 - structure instances tagged with supported features
 - specifying client and server code in the same feature
 - multiple contexts: switch between different feature-groups

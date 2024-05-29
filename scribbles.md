@@ -1,5 +1,11 @@
 # scribbles
 
+Okey. Now for multi-point programming.
+
+The obvious and most fun thing to do is to look at the hello name example.
+
+
+-------------------------------------------------------------------------------
 Some daylight falling on poke-able constructors. Found a method that works.
 This week goals:
 
@@ -10,7 +16,7 @@ This week goals:
 stretch goal
 3- demonstrate a basic chat program running in this environment
 
-_____________
+
 
 
 TEMP:

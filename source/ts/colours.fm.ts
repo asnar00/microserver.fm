@@ -8,12 +8,20 @@ import { _Feature, feature, on, after, before, struct, extend, make, fm, console
 
 @struct class Colour { r: number =0; g: number =0; b: number =0; }
 declare const add_colours: (c1: Colour, c2: Colour) => Colour;
+declare const main: () => void;
 
 @feature class _Colour extends _Feature {
     @on add_colours(c1: Colour, c2: Colour): Colour {
         return make(Colour, {r: c1.r + c2.r, g: c1.g + c2.g, b: c1.b + c2.b});
     }
+    @on main() {
+        const rgb1 = make(Colour, {r:1, b: 2});
+        const rgb2 = make(Colour, {r:0, g: 2});
+        const rgb3 = add_colours(rgb1, rgb2);
+        console.log("rgb3", rgb3);
+    }
 }
+
 
 // -----------------------------------------------------------------------------
 
@@ -26,11 +34,7 @@ interface Colour { a: number; }
     }
 }
 
-const rgb1 = make(Colour, {r:1, b: 2});
-const rgb2 = make(Colour, {r:0, g: 2});
-console.log("rgb1", rgb1);
-console.log("rgb2", rgb2);
-const rgb3 = add_colours(rgb1, rgb2);
-console.log("rgb3", rgb3);
+main();
+
 
 
