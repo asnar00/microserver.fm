@@ -59,6 +59,13 @@ export function console_grey(str: string) : string { return `\x1b[48;5;234m\x1b[
 // base class of all feature clauses
 
 export class _Feature {
+    existing(fn: Function) {
+        let name = functionNames.get(fn);
+        if (name) {
+            const mf = MetaFeature._byname[this.constructor.name];
+            return mf.existing[name];
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -69,6 +76,7 @@ class MetaFeature {
     instance: _Feature|null = null;             // singleton instance
     name: string;                               // name of the feature
     functions: MetaFunction[] = [];             // all the functions we define, including decorators
+    existing: any = {};                         // maps function name to existing-function
     parent: MetaFeature | null = null;          // feature we extend
     children: MetaFeature[] = [];               // all features that extend this feature
     enabled: boolean = true;                    // whether this feature is enabled (and children)
@@ -91,6 +99,14 @@ class MetaFeature {
         let mf = MetaFeature._byname[name];
         if (!mf) { mf = new MetaFeature(name); }
         return mf;
+    }
+
+    addFunction(mfn: MetaFunction) {
+        this.functions.push(mfn);
+        const existingFn = fm.getModuleScopeFunction(mfn.name);
+        if (existingFn) {
+            this.existing[mfn.name] = existingFn;
+        }
     }
 
     isEnabled() : boolean {
@@ -140,7 +156,7 @@ export function on(target: any, propertyKey: string, descriptor: PropertyDescrip
     const method = descriptor.value;
     const className = target.constructor.name;
     const mf = MetaFeature._findOrCreate(className);
-    mf.functions.push(new MetaFunction(propertyKey, method, "on"));
+    mf.addFunction(new MetaFunction(propertyKey, method, "on"));
 }
 
 // @after decorator handler
@@ -148,7 +164,7 @@ export function after(target: any, propertyKey: string, descriptor: PropertyDesc
     const method = descriptor.value;
     const className = target.constructor.name;
     const mf = MetaFeature._findOrCreate(className);
-    mf.functions.push(new MetaFunction(propertyKey, method, "after"));
+    mf.addFunction(new MetaFunction(propertyKey, method, "after"));
 }
 
 // @before decorator handler
@@ -156,7 +172,66 @@ export function before(target: any, propertyKey: string, descriptor: PropertyDes
     const method = descriptor.value;
     const className = target.constructor.name;
     const mf = MetaFeature._findOrCreate(className);
-    mf.functions.push(new MetaFunction(propertyKey, method, "before"));
+    mf.addFunction(new MetaFunction(propertyKey, method, "before"));
+}
+
+//------------------------------------------------------------------------------
+// structure extension using Proxy and class trickery
+
+const _initialisers : any = {};
+
+export function struct<T extends { new (...args: any[]): {} }>(constructor: T) {
+    _initialisers[constructor.name] = (instance: any, arg: any) => {
+        const properties = Object.getOwnPropertyNames(instance);
+        properties.forEach((key) => {
+            if (arg && arg[key] !== undefined) {
+                instance[key] = arg[key];
+            }
+        });
+    };
+
+    const newConstructor = class extends constructor {
+        static originalName = constructor.name;
+        
+        constructor(...args: any[]) {
+            super(...args);
+            const instance = this as any;
+            _initialisers[constructor.name](instance, args[0]);
+        }
+    };
+
+    // Set the name of the new constructor to be the same as the original
+    Object.defineProperty(newConstructor, 'name', { value: constructor.name });
+    
+    return newConstructor;
+}
+
+type Constructor<T = {}> = new (...args: any[]) => T;
+export function extend<T extends Constructor>(ExistingClass: T) {
+    return function <U extends Constructor>(constructor: U) {
+        let initNewClass = (instance: any, args: any) => {
+            const newInstance = new constructor();  // construct AdditionalClass
+            const properties = Object.getOwnPropertyNames(newInstance);
+            properties.forEach((key) => {
+                if (args && args[key] !== undefined) {
+                    (instance as any)[key] = args[key];
+                } else {
+                    (instance as any)[key] = (newInstance as any)[key];
+                }
+            });
+        }
+        let oldInit = _initialisers[ExistingClass.name];
+        _initialisers[ExistingClass.name] = (instance: any, arg: any) => {
+            oldInit(instance, arg);
+            initNewClass(instance, arg);
+        };
+        return constructor as U;
+    };
+}
+
+export function make<T>(Cls: { new (): T }, args: any): T {
+    // @ts-ignore
+    return new Cls(args);
 }
 
 //------------------------------------------------------------------------------
@@ -164,12 +239,14 @@ export function before(target: any, propertyKey: string, descriptor: PropertyDes
 
 // Create a global function registry
 const functionRegistry: { [key: string]: Function } = {};
+const functionNames = new Map<Function, string>();
 
 // Create a Proxy handler
 const handler: ProxyHandler<typeof globalThis> = {
     set(target, property, value) {
         if (typeof value === 'function') {
             functionRegistry[property as string] = value;
+            functionNames.set(value, property as string);
         }
         return Reflect.set(target, property, value);
     }
@@ -315,6 +392,7 @@ export class FeatureManager {
     replaceModuleScopeFunction(name: string, newFn: Function) {
         if (functionRegistry[name]) {
             (proxiedGlobalThis as any)[name] = newFn;
+            functionNames.set(newFn, name);
         } else {
             this.defineModuleScopeFunction(name, newFn);
         }
@@ -322,6 +400,7 @@ export class FeatureManager {
 
     defineModuleScopeFunction(name: string, fn: Function) {
         (proxiedGlobalThis as any)[name] = fn;
+        functionNames.set(fn, name);
     }
 
     listModuleScopeFunctions() {
@@ -330,12 +409,18 @@ export class FeatureManager {
 
     clearModuleScopeFunctions() {
         for(let name of Object.keys(functionRegistry)) {
+            const fn = (proxiedGlobalThis as any)[name];
             delete (proxiedGlobalThis as any)[name];
+            functionNames.delete(fn);
         }
     }
 
     getModuleScopeFunction(name: string) {
         return functionRegistry[name];
+    }
+
+    getFunctionName(fn: Function) {
+        return functionNames.get(fn);
     }
 }
 

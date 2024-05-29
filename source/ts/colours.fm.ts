@@ -2,45 +2,35 @@
 // colours.fm.ts
 // feature modular struct extension
 
-import { _Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
+import { _Feature, feature, on, after, before, struct, extend, make, fm, console_separator} from "./fm.ts";
 
-interface Colour {
-    r: number; g: number; b: number;
-}
+// -----------------------------------------------------------------------------
 
-//declare const colour: (r: number, g: number, b: number) => Colour;
-declare const add_colours: (c1: Colour, c2: Colour) => Colour; 
+@struct class Colour { r: number =0; g: number =0; b: number =0; }
+declare const add_colours: (c1: Colour, c2: Colour) => Colour;
 
-@feature class _RGBColour extends _Feature {
-    @on colour(r: number=0, g: number=0, b: number=0): Colour {
-        return {r, g, b} as Colour;
-    }
+@feature class _Colour extends _Feature {
     @on add_colours(c1: Colour, c2: Colour): Colour {
-        return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
+        return make(Colour, {r: c1.r + c2.r, g: c1.g + c2.g, b: c1.b + c2.b});
     }
 }
 
-interface Colour {
-    a: number;
-}
-declare const colour: (r?: number, g?: number, b?: number, a?:number) => Colour;
+// -----------------------------------------------------------------------------
 
-@feature class _RGBAColour extends _RGBColour {
-    @on colour(r: number=0, g: number=0, b: number=0, a: number=1): Colour {
-        return {r, g, b, a} as Colour;
-    }
+interface Colour { a: number; }
+@extend(Colour) class Alpha { a: number = 0.5; }
+
+@feature class _AlphaColour extends _Colour {
     @on add_colours(c1: Colour, c2: Colour): Colour {
-        return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a);
+        return { ... this.existing(add_colours)(c1, c2), a: c1.a + c2.a };
     }
 }
 
-function main() {
-    let col1  = colour(1, 0, 0.5);
-    console.log("col1:", col1);
-    let col2 = colour(1, 0.5, 1, 0.5);
-    console.log("col2:", col2);
-    let col3 = add_colours(col1, col2);
-    console.log("col3:", col3);
-}
+const rgb1 = make(Colour, {r:1, b: 2});
+const rgb2 = make(Colour, {r:0, g: 2});
+console.log("rgb1", rgb1);
+console.log("rgb2", rgb2);
+const rgb3 = add_colours(rgb1, rgb2);
+console.log("rgb3", rgb3);
 
-main();
+

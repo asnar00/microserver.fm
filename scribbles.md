@@ -1,5 +1,183 @@
 # scribbles
 
+Some daylight falling on poke-able constructors. Found a method that works.
+This week goals:
+
+1- now that we have a pathway to auto-construct, finalise Colour example.
+2- get the simplest, most natural form of "multi-node" programming working.
+  (which in this case would be client/server)
+
+stretch goal
+3- demonstrate a basic chat program running in this environment
+
+_____________
+
+
+TEMP:
+//-----------------------------------------------------------------------------
+/*
+    feature RGBColour {
+        struct Colour { r: number=0; g: number=0; b: number=0; }
+        on add(c1: Colour, c2: Colour): Colour {
+            return Colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
+        }
+    }
+*/
+
+class Colour { r: number =0; g: number =0; b: number =0; }
+
+declare const add_colours: (c1: Colour, c2: Colour) => Colour; 
+
+@feature class _RGBColour extends _Feature {
+    @on colour(r: number=0, g: number=0, b: number=0): Colour {
+        return construct(Colour, {r, g, b });
+    }
+    @on add_colours(c1: Colour, c2: Colour): Colour {
+        return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
+    }
+}
+
+//-----------------------------------------------------------------------------
+/*
+    feature RGBAColour extends RGBColour {
+        struct Colour { a: number=1; }
+        on add(c1: Colour, c2: Colour): Colour {
+            return { add(c1, c2) .. c1.a + c2.a);
+        }
+    }
+*/
+
+interface Colour { a: number; }
+@extend(Colour) class Alpha { a: number = 1; }
+
+declare const colour: (r?: number, g?: number, b?: number, a?:number) => Colour; 
+
+@feature class _RGBAColour extends _RGBColour {
+    @on colour(r: number=0, g: number=0, b: number=0, a: number=1): Colour {
+        return construct(Colour, { r, g, b, a });
+    }
+    @on add_colours(c1: Colour, c2: Colour): Colour {
+        return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a);
+    }
+}
+
+function main() {
+    let col = new Colour();
+    console.log(col);
+}
+
+main();
+_____________________________________________________________________
+Thoughts on multi-point.
+
+we have bits of state that are owned (published) by various nodes
+we want to specify operations on those *bits of state*, regardless of where the state is stored, or where the operation takes place.
+
+Yo define a "machine" using this syntax:
+
+    node Drone
+        cam: Image;                // stream of incoming images
+        target: Location;          // stream of commands
+    
+So we can write simple, matter-of-fact stuff like
+
+    feature DroneFollow
+        on follow (drone: Node, person: Image, distance: Scalar)
+            drone.cam >> image: Image
+            find (person) in (image) >> region: ImageRegion
+            find location of (region) relative to (drone) >> location: Location
+            (location, distance) >> drone.target
+
+enteresting, or
+
+    feature DroneFollow
+        on follow (drone: Node, person: Image, distance: Scalar)
+            image: Image << drone.cam
+            region: ImageRegion << find (person) in (image)
+            location: Location << find gps coord of (region) relative to (drone)
+            drone.approach << location, distance;
+
+These are just streams being hooked into one another; there's no mention of where the computation takes place, *except* where we refer to a stream that's bound to a particular node (in this case, the input `drone.cam` and the output `drone.target`). And because only those variables are physically 'pinned" as it were, the others can exist anywhere.
+
+So the decision about where each computation takes place can be based on:
+
+    - which machines are fast enough to run the workload?
+    - which machines have enough spare capacity?
+    - how long does it take to get data from point A to point B?
+    
+So "expensive" operations such as `find (person) in (image)` can end up moving around.
+
+In this example, imagine that we start with an inexpensive drone, that can't do much more than stream a camera feed back to base. In this case, we'd want `find person` to run on the server, and ... stream the camera feed back to it. Not especially controversial.
+
+But, we moan, well, all that video information is a pain because it uses bandwidth, and it limits how far away we can fly, there's latency, etc etc.
+
+No problem, we go out and buy a super drone that has a bunch of GPUs on board. Hey presto, now the whole of `follow` can run on the drone, the server just sends it `follow` commands (the code doesn't have to change; we just replace the call with a proxy).
+
+This is, I think a super cool capability, and it's what we're building this week.
+Once we have this, we're going to write proper client/server code that looks and feels sensible.
+
+_____________________________________________________________________
+There's a flavour of this where all nodes are explicitly specified.
+So you have client ("nothing") and server, and any other machines eg. drone.
+
+I don't mind this for now.
+
+When we declare a variable "shared", we assign it to a specific node.
+
+    So we say
+
+    @shared(server) var xyz;
+
+(inside the feature obviously)
+
+    and then we can use xyz wherever we like.
+
+Functions are "pinned" as follows:
+
+    if it modifies (var), then it has to run on var's owner. 
+        we generate a proxy on the client that forwards to the owner.
+            we standardise on a websocket substrate.
+    if it reads (var), then we have to subscribe to var's owner.
+
+So we have
+
+    class Chat {
+        users: User[] = [];
+        messages: Message[] = [];
+    }
+
+    class Message {
+        username: string;
+        text: string;
+    }
+
+    @feature class _Chat {
+        chat: Chat;
+        username: string;
+        @on start() {
+            join(username, chat);
+        }
+        @on join(username, chat) {
+            chat.users.push(find_user(username));
+        }
+        @on post(username: string, text: string) {
+            chat.messages.push(new Message(username, text));
+            for (let u in chat.users)  { u.display(message); }
+        }
+        @on display(message: Message) {
+            add_to_display(html_from_message(message));
+        }
+    }
+
+Then we basically have to mark functions as running on one machine or another, like this:
+
+    server.assign([_Chat.chat, post])
+
+
+
+    
+        
+
 _____________________________________________________________________
 zerp interface thoughts:
 

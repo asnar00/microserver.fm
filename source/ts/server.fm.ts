@@ -24,7 +24,7 @@ declare const main: () => Promise<void>;
 // Server listens on port 8000 but only returns "not found" for now
 
 declare const notFound: () => Promise<Response>;
-declare const handler: (req: Request) => Promise<Response|undefined>;
+declare const handle: (req: Request) => Promise<Response|undefined>;
 declare const receiveRequest: (req: Request) => Promise<Response>;
 declare const startServer: () => Promise<void>;
 
@@ -32,12 +32,12 @@ declare const startServer: () => Promise<void>;
     @on async notFound() : Promise<Response> {
         return new Response("Not found", { status: 404 });
     }
-    @on async handler(req: Request): Promise<Response|undefined> {
+    @on async handle(req: Request): Promise<Response|undefined> {
         return notFound();
     }
     @on async receiveRequest(req: Request): Promise<Response|undefined> {
         console.log(req.method, req.url);
-        return handler(req);
+        return handle(req);
     }
     @on async startServer() {
         deno_http.serve(receiveRequest, { port: 8000 });
@@ -72,7 +72,7 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
             return await deno_file.serveFile(req, path); 
         }
     }
-    @before async handler(req: Request): Promise<Response|undefined> {
+    @before async handle(req: Request): Promise<Response|undefined> {
         if (req.method === "GET") {
             return serveFile(req);
         }
@@ -95,7 +95,7 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
             return new Response(JSON.stringify(result), { status: 200 });
         }
     }
-    @before async handler(req: Request): Promise<Response|undefined> {
+    @before async handle(req: Request): Promise<Response|undefined> {
         if (req.method === "PUT") {
             return callFunction(req);
         }

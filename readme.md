@@ -85,10 +85,10 @@ Because fm.ts seeks to replace object-orientation with feature modularity, fm.ts
 
 The `colours.fm.ts` example demonstrates this using an RGB colour that we then later extend by adding an alpha property. The canonical fm.ts way of implementing this is as follows:
 
-First, we define the `Colour` interface (type):
+First, we define the `Colour` class (type):
 
-    interface Colour {
-        r: number; g: number; b: number;
+    class Colour {
+        r: number=0; g: number=0; b: number=0;
     }
 
 Then declare a `colour` constructor (notice: the name is lowercase, because it's a function):
@@ -100,10 +100,11 @@ Then declare a `colour` constructor (notice: the name is lowercase, because it's
     declare const add_colours: (c1: Colour, c2: Colour) => Colour; 
 
 Finally we declare the feature `_RGBColour`, which defines the `colour` constructor and sets up the default values of each property, as well as defining the component-by-component addition.
+Note the `construct` helper function that creates an instance of Colour and sets its properties in one call.
 
     @feature class _RGBColour extends _Feature {
         @on colour(r: number=0, g: number=0, b: number=0): Colour {
-            return {r, g, b} as Colour;
+            return construct(Colour, { r, g, b });
         }
         @on add_colours(c1: Colour, c2: Colour): Colour {
             return colour(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
