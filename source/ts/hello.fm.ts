@@ -2,7 +2,7 @@
 // hello.fm.ts
 // feature modular hello world
 
-import { _Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
+import { _Feature, feature, on, after, before, fm, console_separator} from "./fm.js";
 
 //-----------------------------------------------------------------------------
 // Main

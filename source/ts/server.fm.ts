@@ -1,10 +1,9 @@
 // ᕦ(ツ)ᕤ
 // server.fm.ts
-// feature-modular deno server
+// feature-modular server
 // author: asnaroo
 
-import * as deno_http from "https://deno.land/std@0.165.0/http/server.ts";
-import * as deno_file from "https://deno.land/std@0.165.0/http/file_server.ts";
+import * as os from "./os.ts";
 import * as features from "./fm.ts";
 
 const { _Feature, feature, on, after, before, fm, console_separator } = features;
@@ -12,12 +11,10 @@ const { _Feature, feature, on, after, before, fm, console_separator } = features
 //------------------------------------------------------------------------------
 // Main doesn't do much
 
-declare const main: () => Promise<void>;
+declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @on async main() {
-        console.log("microserver.fm");
-    }
+    @on async server() { console.log("ᕦ(ツ)ᕤ server"); }
 }
 
 //------------------------------------------------------------------------------
@@ -30,6 +27,7 @@ declare const startServer: () => Promise<void>;
 
 @feature class _Server extends _Main {
     @on async notFound() : Promise<Response> {
+        console.log("notFound!");
         return new Response("Not found", { status: 404 });
     }
     @on async handle(req: Request): Promise<Response|undefined> {
@@ -40,9 +38,9 @@ declare const startServer: () => Promise<void>;
         return handle(req);
     }
     @on async startServer() {
-        deno_http.serve(receiveRequest, { port: 8000 });
+        os.serve(receiveRequest, { port: 8000 });
     }
-    @after async main() {
+    @after async server() {
         startServer();
     }
 }
@@ -55,7 +53,7 @@ declare const translatePath: (url: string) => string;
 declare const serveFile: (req: Request) => Promise<Response|undefined>;
 
 @feature class _Get extends _Server {
-    static publicFolder: string = Deno.cwd().replaceAll("/source/ts", "/public");
+    static publicFolder: string = os.cwd().replaceAll("/source/ts", "/public");
     
     @on getPathFromUrl(url: string): string {
         return url.slice("http://localhost:8000".length);
@@ -69,13 +67,27 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
         let path = translatePath(req.url);
         if (path) {
             console.log(path.replace(_Get.publicFolder, ""));
-            return await deno_file.serveFile(req, path); 
+            return await os.serveFile(req, path); 
         }
     }
     @before async handle(req: Request): Promise<Response|undefined> {
         if (req.method === "GET") {
             return serveFile(req);
         }
+    }
+}
+
+//------------------------------------------------------------------------------
+// GetJS redirects ".js" requests to the /js folder
+
+@feature class _GetJS extends _Get {
+    static jsFolder : string = os.cwd().replaceAll("/source/ts", "/build/js");
+    @on translatePath(url: string): string {
+        let path = this.existing(translatePath)(url);
+        if (path.endsWith(".js")) {
+            path = path.replace(_Get.publicFolder, _GetJS.jsFolder);
+        }
+        return path;
     }
 }
 
@@ -113,11 +125,9 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
     }
 }
 
-//------------------------------------------------------------------------------
-
 console_separator();
 fm.readout();
 fm.debug(true);
 console_separator();
 
-main();
+server();

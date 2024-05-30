@@ -3,7 +3,7 @@
 // author: asnaroo
 // compiles zero to typescript
 
-import { Feature, feature, on, after, before, fm, console_separator} from "./fm.ts";
+import { _Feature, feature, on, after, before, fm, console_separator} from "./fm.js";
 
 //-----------------------------------------------------------------------------
 // Main
@@ -11,7 +11,7 @@ import { Feature, feature, on, after, before, fm, console_separator} from "./fm.
 declare const main: () => void;
 declare const test: () => void;
 
-@feature class _Main extends Feature {
+@feature class _Main extends _Feature {
     @on test() { }
     @on main() { console.log("ᕦ(ツ)ᕤ"); }
 }

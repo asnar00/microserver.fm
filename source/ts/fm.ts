@@ -75,6 +75,7 @@ export class _Feature {
 class MetaFeature {
     instance: _Feature|null = null;             // singleton instance
     name: string;                               // name of the feature
+    properties: MetaProperty[] = [];            // all the properties we define (with decorators)
     functions: MetaFunction[] = [];             // all the functions we define, including decorators
     existing: any = {};                         // maps function name to existing-function
     parent: MetaFeature | null = null;          // feature we extend
@@ -132,7 +133,15 @@ class MetaFunction {
     }
 }
 
-let _metaFeature = new MetaFeature("Feature");
+// everything there is to know about a property defined inside a feature
+class MetaProperty {
+    name: string;               // as it appears in global space
+    constructor(name: string,) {
+        this.name = name;
+    }
+}
+
+let _metaFeature = new MetaFeature("_Feature");
 _metaFeature.initialise("", new _Feature());
 
 //------------------------------------------------------------------------------
@@ -147,7 +156,7 @@ export function feature<T extends { new (...args: any[]): {} }>(constructor: T) 
     if (!className.startsWith("_")) { throw new Error(`Feature class name must start with an underscore: ${className}`); }
     const mf = MetaFeature._findOrCreate(className);
     const instance = new constructor();
-    mf.initialise(superClassName, instance);
+    mf.initialise(superClassName, instance as _Feature);
     fm.buildFeature(mf);
 }
 
@@ -280,7 +289,7 @@ export class FeatureManager {
     }
 
     readout(mf: MetaFeature|null=null) {
-        if (!mf) mf = _metaFeature.children[0];
+        if (!mf) {  mf = MetaFeature._byname["_Feature"].children[0]; }
         if (mf.isEnabled()) {
             console.log(mf.name);
             console_indent();
@@ -425,3 +434,7 @@ export class FeatureManager {
 }
 
 export const fm = new FeatureManager();
+
+//------------------------------------------------------------------------------
+// Websockets
+

@@ -6,23 +6,6 @@
     <title>microserver.fm</title>
 </head>
 <body>
-    <h3>microserver.fm</h3>
-    <input type="text" id="username" placeholder="enter your name">
-    <button onclick="sendName()">submit</button>
-    <p id="response"></p>
-    <script>
-        async function sendName() {
-            const userName = document.getElementById('username').value;
-            const response = await fetch('http://localhost:8000/greet', {
-                method: 'PUT', // Specify the method as PUT
-                headers: {
-                    'Content-Type': 'application/json' // Specify that we're sending JSON data
-                },
-                body: JSON.stringify({username: userName}) // Send the data as a JSON string
-            });
-            const data = await response.text();
-            document.getElementById('response').textContent = data;
-        }
-    </script>
+    <script type="module" src="client.fm.js"></script>
 </body>
 </html>

@@ -3,6 +3,74 @@
 Okey. Now for multi-point programming.
 
 The obvious and most fun thing to do is to look at the hello name example.
+What should the code look like?
+
+    @feature class _HelloClient {
+        @server @private @persistent("users.json") static users: any;
+
+        @on client_main() {
+            let name = input("name");
+            let message = greeting(name);
+            print(message);
+        }
+
+        @on greeting(name) { 
+            if (recognised(name)) { return "hello, " + name + "!"; }
+            else { return "fuck off"; }
+        }
+
+        @server @on recognised(name) : boolean { 
+            return _HelloClient.users[name] != undefined;
+        }
+
+        @on input(..) { some html stuff }
+        @on print(..) { some html stuff }
+    }
+
+`@server` : the property or function lives on the server
+`@private` : the property cannot be sent to any other machine
+`@persistent` : the property gets loaded from the file at startup, and autosaved when it changes.
+
+So let's see how a chat program would work:
+
+    @struct class Message { 
+        user: string;
+        text: string;
+    }
+
+    @struct class Chat {
+        title: string;
+        messages: Message[];
+    }
+
+    @feature class _Chat {
+        @server @persistent("chat.json") static s_chat : Chat;
+        @server @on post(msg: Message) {
+            chat.messages.push(msg);
+        }
+        @on client_main() {
+            display(s_chat);
+        }
+        @on display(chat: Chat) {
+            ... generate html ...
+        }
+    }
+
+`on_changed` subscribes the client to a specific variable; on the client.
+I kind of think we should do subscriptions based on paths.
+
+I think we should use websockets for everything.
+Also, under the hood. What's the correct abstraction?
+
+    monitor(path, (obj) => fn(obj);)
+
+    monitor("chat.json", (chat) => display(chat);)
+    
+
+
+
+
+
 
 
 -------------------------------------------------------------------------------

@@ -38,8 +38,8 @@ export class FeatureManager {
     debugging: boolean = true;  // debug mode
 
     constructor() {
-        this.features["Feature"] = new Feature();
-        this.metafeatures["Feature"] = new MetaFeature("Feature", "");
+        this.features["_Feature"] = new _Feature();
+        this.metafeatures["_Feature"] = new MetaFeature("_Feature", "");
     }
 
     // readout features and functions

@@ -10,73 +10,79 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import * as features from "./fm.ts";
-const { Feature, feature, on, after, before, fm, fx } = features;
-//-----------------------------------------------------------------------------
-let Main = class Main {
-    main() {
-        console.log("hello world!");
-    }
+import { _Feature, feature, on, after, before, fm, console_separator } from "./fm.js";
+let _Main = class _Main extends _Feature {
+    main() { console.log("ᕦ(ツ)ᕤ"); }
 };
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], Main.prototype, "main", null);
-Main = __decorate([
-    feature(Feature)
-], Main);
-//-----------------------------------------------------------------------------
-let Goodbye = class Goodbye {
-    kthxbye() {
-        console.log("kthxbye");
-    }
-    main() {
-        fx.kthxbye();
-    }
+], _Main.prototype, "main", null);
+_Main = __decorate([
+    feature
+], _Main);
+let _Hello = class _Hello extends _Main {
+    hello() { console.log("hello world"); }
+    main() { hello("asnaroo"); }
 };
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], Goodbye.prototype, "kthxbye", null);
+], _Hello.prototype, "hello", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], _Hello.prototype, "main", null);
+_Hello = __decorate([
+    feature
+], _Hello);
+let _Goodbye = class _Goodbye extends _Main {
+    bye() { console.log("kthxbye"); }
+    main() { bye(); }
+};
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], _Goodbye.prototype, "bye", null);
 __decorate([
     after,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], Goodbye.prototype, "main", null);
-Goodbye = __decorate([
-    feature(Main)
-], Goodbye);
-//-----------------------------------------------------------------------------
-let Countdown = class Countdown {
-    countdown() {
-        for (let i = 10; i > 0; i--) {
-            console.log(i);
-        }
-    }
-    main() {
-        fx.countdown();
-    }
+], _Goodbye.prototype, "main", null);
+_Goodbye = __decorate([
+    feature
+], _Goodbye);
+let _Countdown = class _Countdown extends _Main {
+    countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
+    main() { countdown(); }
 };
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], Countdown.prototype, "countdown", null);
+], _Countdown.prototype, "countdown", null);
 __decorate([
     before,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], Countdown.prototype, "main", null);
-Countdown = __decorate([
-    feature(Main)
-], Countdown);
-console.log("ᕦ(ツ)ᕤ");
-console.log("testing testing");
+], _Countdown.prototype, "main", null);
+_Countdown = __decorate([
+    feature
+], _Countdown);
+console_separator();
+//fm.disable(["_Hello", "_Countdown"]);
 fm.readout();
+fm.debug(true);
+console_separator();
+main();

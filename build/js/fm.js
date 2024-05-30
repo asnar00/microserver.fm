@@ -3,203 +3,417 @@
 // author: asnaroo
 // feature-modular typescript
 //------------------------------------------------------------------------------
-// fm is the main object that holds all the features and functions
-export class Fm {
-    constructor() {
-        this.features = {}; // all feature classes (instance of each)
-        this.metafeatures = {}; // metafeatures store relationships between features
-        this.composites = {}; // all composite functions (instance of each)
-    }
-    disable(featureName) {
-        this.metafeatures[featureName].enabled = false;
-    }
-    enable(featureName) {
-        this.metafeatures[featureName].enabled = true;
-    }
-    isEnabled(featureName) {
-        let result = true;
-        while (result && featureName != "Feature") {
-            result = result && this.metafeatures[featureName].enabled;
-            featureName = this.metafeatures[featureName].parent;
-        }
-        return result;
-    }
-    readout(featureName = "Feature") {
-        console.log("//readout", featureName);
-        console.log(featureName, this.metafeatures[featureName].enabled ? "✔️" : "x");
-        _indent += "  ";
-        for (let child of this.metafeatures[featureName].children) {
-            this.readout(child);
-        }
-        _indent = _indent.slice(0, -2);
-    }
-}
-export let fm = new Fm();
-// fx is the "exexcutable: enable/disable settings and actual functions
-export let fx = {}; // actual functions for all features
-export class Feature {
-} // base feature
-class MetaFeature {
-    constructor(name, parent) {
-        this.name = name;
-        this.parent = parent;
-        this.children = [];
-        this.enabled = true;
-    }
-}
-;
-//------------------------------------------------------------------------------
-// On, Before, After, Replace classes
-// FeatureFunction refers to a specific method defined in a feature clause
-class FeatureFunction {
-    constructor(featureName, methodName, descriptor) {
-        this.featureName = featureName;
-        this.methodName = methodName;
-        this.descriptor = descriptor;
-    }
-    toString() { return `${this.featureName}.${this.methodName}`; }
-}
-// CompositeFunction is a monolithic function constructed from FeatureFunctions
-class CompositeFunction {
-    constructor(type, fn, existing = undefined) {
-        this.type = type;
-        this.fn = fn;
-        this.existing = existing;
-    }
-    toString() {
-        if (this.existing) {
-            return `(${this.fn.toString()} ${this.type} ${this.existing.toString()})`;
+// logging
+let _indent = ""; // start of each console for indenting
+let _suffix = ""; // at the end of each console line, print this in grey
+let _stack = []; // current callstack
+let _width = 80; // width of the console
+function formatLog(...args) {
+    // Convert all arguments to strings and handle objects specifically
+    let outstr = args.map(arg => {
+        if (typeof arg === 'object') {
+            // Use JSON.stringify to convert objects to strings
+            try {
+                return JSON.stringify(arg, null, 2);
+            }
+            catch (error) {
+                return String(arg);
+            }
         }
         else {
-            return `(${this.fn.toString()})`;
+            // Convert non-objects to strings directly
+            return String(arg);
         }
+    }).join(' '); // Join all parts with a space, similar to how console.log does
+    if (_suffix != "") {
+        let crstr = "";
+        while (outstr.length >= _width) {
+            crstr += outstr.slice(0, _width) + "\n";
+            outstr = outstr.slice(_width);
+        }
+        let nSpaces = _width - outstr.length - _suffix.length;
+        if (nSpaces > 0) {
+            crstr += outstr + " ".repeat(nSpaces);
+            crstr += console_grey(_suffix);
+        }
+        else {
+            crstr += outstr + "\n";
+            crstr += " ".repeat(_width - _suffix.length) + console_grey(_suffix);
+        }
+        return crstr;
     }
+    return outstr;
 }
-// add a new composite function to cf
-function addComposite(type, featureName, fn, descriptor) {
-    let newFn = new FeatureFunction(featureName, fn, descriptor);
-    let existing = fm.composites[fn];
-    let newComposite = new CompositeFunction(type, newFn, existing);
-    fm.composites[fn] = newComposite;
-}
-//------------------------------------------------------------------------------
-// decorators
-export function feature(TargetClass) {
-    return function (constructor) {
-        const className = constructor.name;
-        const parentName = TargetClass.name;
-        console.log(`feature ${className} extends ${parentName}`);
-        fm.features[className] = new constructor();
-        fm.metafeatures[className] = new MetaFeature(className, parentName);
-    };
-}
-export function on(target, propertyKey, descriptor) {
-    addComposite("on", target.constructor.name, propertyKey, descriptor);
-}
-export function before(target, propertyKey, descriptor) {
-    addComposite("before", target.constructor.name, propertyKey, descriptor);
-}
-export function after(target, propertyKey, descriptor) {
-    addComposite("after", target.constructor.name, propertyKey, descriptor);
-}
-//------------------------------------------------------------------------------
-let _result = null; // allows @after methods to sneak a result into the original method
-let _existing = null; // allows @replace methods to sneak the original method into the new method
-let _indent = ""; // start of each console for indenting
-let _grey = '\x1b[47m\x1b[30m%s\x1b[0m'; // start of each console for grey background
 const originalConsoleLog = console.log; // Store the original console.log function
 console.log = (...args) => {
-    originalConsoleLog(_indent, ...args); // Prepend the indentation to the original arguments and pass them to the original console.log
+    originalConsoleLog(_indent + formatLog(...args));
 };
-function functionFromMethod(target, propertyKey, descriptor) {
-    return function (...args) {
-        console.log(`\x1b[48;5;234m\x1b[30m${target.constructor.name}.${propertyKey}\x1b[0m`);
-        _indent += "  ";
-        let result = descriptor.value.apply(fm.composites[target.constructor.name], args); // Call the original method on the new instance
-        _indent = _indent.slice(0, -2);
-        return result;
-    };
+export const console_indent = () => { _indent += "  "; }; // Add two spaces to the indentation
+export const console_undent = () => { _indent = _indent.slice(0, -2); }; // Remove two spaces from the indentation
+export const console_separator = () => { console.log("-".repeat(_width)); }; // Print a separator line
+export function console_grey(str) { return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`; }
+//------------------------------------------------------------------------------
+// base class of all feature clauses
+export class _Feature {
+    existing(fn) {
+        let name = functionNames.get(fn);
+        if (name) {
+            const mf = MetaFeature._byname[this.constructor.name];
+            return mf.existing[name];
+        }
+    }
 }
 //------------------------------------------------------------------------------
-// build actual functions
-// build actual functions using enable/disable settings
-function build(fm) {
-}
-/*
-
-// adds the class to fm
-export function feature(TargetClass: { new(...args: any[]): {} }) {
-    return function (constructor: { new(...args: any[]): any }) {
-        console.log(`feature ${constructor.name} extends ${TargetClass.name}`);
-        fm[constructor.name] = new constructor();  // Use the 'new' operator with the constructor to create an instance
+// MetaFeature / MetaFunction
+// everything there is to know about a Feature
+class MetaFeature {
+    constructor(name) {
+        this.instance = null; // singleton instance
+        this.properties = []; // all the properties we define (with decorators)
+        this.functions = []; // all the functions we define, including decorators
+        this.existing = {}; // maps function name to existing-function
+        this.parent = null; // feature we extend
+        this.children = []; // all features that extend this feature
+        this.enabled = true; // whether this feature is enabled (and children)
+        this.name = name;
+        MetaFeature._all.push(this);
+        MetaFeature._byname[name] = this;
     }
-}
-
-// adds the function to fm if it doesn't exist, otherwise creates a new function that calls both the existing and new functions in parallel
-export function on(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    let newFunction = functionFromMethod(target, propertyKey, descriptor);
-    if (!fm[propertyKey]) {                                     // Check if 'fm' already has a function with this name
-        fm[propertyKey] = newFunction;
-    } else {
-        throw new Error(`@on ${target.constructor.name}.${propertyKey} : function already exists`);
-    }
-}
-
-// before makes a composite function that calls the new one, then calls the existing one
-export function before(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    if (!fm[propertyKey]) { throw new Error("@before couldn't find original function"); }
-    const existingFunction = fm[propertyKey];
-    let newFunction = functionFromMethod(target, propertyKey, descriptor);
-    fm[propertyKey] = function (...args: any[]) {         // Create a function that calls both the existing and new functions in parallel
-        let result : any = newFunction.apply(fm[target.constructor.name], args);        // Execute the new function
-        if (result instanceof Promise) {
-            return result.then((result: any) => {         // Wait for the new function to resolve
-                if (result) return result;                  // If the new function returned a result, return it
-                return existingFunction.apply(fm[target.constructor.name], args);  // Call the existing function
-            });
-        } else {
-            if (result) return result;                      // If the new function returned a result, return it
-            return existingFunction.apply(fm[target.constructor.name], args);  // Call the new function
-        }
-    };
-}
-
-// makes a composite function that calls the existing one, then the new one, and sneaks the result into the new one
-export function after(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    if (!fm[propertyKey]) { throw new Error("@before couldn't find original function"); }
-    const originalMethod = descriptor.value;                    // Save the original method to wrap it
-    const existingFunction = fm[propertyKey];
-    let newFunction = function(...args: any[]) {
-        console.log(`\x1b[48;5;234m\x1b[30m${target.constructor.name}.${propertyKey}\x1b[0m`);
-        _indent += "  ";
-        let result: any = originalMethod.apply(fm[target.constructor.name], [...args, _result]);   // sneak result into original method
-        _indent = _indent.slice(0, -2);
-        return result;
-    }
-    if (!fm[propertyKey]) { throw new Error("@before couldn't find original function"); }
-    fm[propertyKey] = function (...args: any[]) {         // Create a function that calls the existing, then the new function
-        let _result = existingFunction.apply(args);       // Call the existing function
-        if (_result instanceof Promise) {
-            return _result.then((result: any) => {         // Wait for the existing function to resolve
-                _result = result;                          // Save the result so it gets sneaked into new function
-                return newFunction.apply(fm[target.constructor.name], args);  // Call the new function
-            });
-        } else {
-            return newFunction.apply(fm[target.constructor.name], args);  // Call the new function
+    initialise(parentName = "", instance) {
+        this.instance = instance;
+        this.parent = MetaFeature._byname[parentName] || null;
+        if (this.parent) {
+            this.parent.children.push(this);
         }
     }
+    static _findOrCreate(name) {
+        let mf = MetaFeature._byname[name];
+        if (!mf) {
+            mf = new MetaFeature(name);
+        }
+        return mf;
+    }
+    addFunction(mfn) {
+        this.functions.push(mfn);
+        const existingFn = fm.getModuleScopeFunction(mfn.name);
+        if (existingFn) {
+            this.existing[mfn.name] = existingFn;
+        }
+    }
+    isEnabled() {
+        let parent = this.parent;
+        let enabled = this.enabled;
+        while (parent && enabled) {
+            enabled && (enabled = parent.enabled);
+            parent = parent.parent;
+        }
+        return enabled;
+    }
 }
-
-// replaces the current definition, if any, with the new one
-// TODO: sneak "_existing" into the new function
-export function replace(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    if (!fm[propertyKey]) { throw new Error("@replace couldn't find original function"); }
-    const originalMethod = descriptor.value;                    // Save the original method to wrap it
-    let _existing = fm[propertyKey];                            // Save the existing function
-    let newFunction = function (...args: any[]) {               // Create a function that instantiates the target class and calls the method
-        return originalMethod.apply(fm[target.constructor.name], [...args, _existing]);  // Call the original method on the new instance
+MetaFeature._all = []; // all features in declaration order
+MetaFeature._byname = {}; // map feature name to MetaFeature
+// everything there is to know about a function defined inside a feature
+class MetaFunction {
+    constructor(name, method, decorator) {
+        this.name = name;
+        this.method = method;
+        this.decorator = decorator;
+    }
+}
+// everything there is to know about a property defined inside a feature
+class MetaProperty {
+    constructor(name) {
+        this.name = name;
+    }
+}
+let _metaFeature = new MetaFeature("_Feature");
+_metaFeature.initialise("", new _Feature());
+//------------------------------------------------------------------------------
+// decorators
+// @feature decorator handler
+export function feature(constructor) {
+    const className = constructor.name;
+    const prototype = Object.getPrototypeOf(constructor.prototype);
+    const superClassConstructor = prototype ? prototype.constructor : null;
+    const superClassName = superClassConstructor ? superClassConstructor.name : 'None';
+    if (!className.startsWith("_")) {
+        throw new Error(`Feature class name must start with an underscore: ${className}`);
+    }
+    const mf = MetaFeature._findOrCreate(className);
+    const instance = new constructor();
+    mf.initialise(superClassName, instance);
+    fm.buildFeature(mf);
+}
+// @on decorator handler
+export function on(target, propertyKey, descriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "on"));
+}
+// @after decorator handler
+export function after(target, propertyKey, descriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "after"));
+}
+// @before decorator handler
+export function before(target, propertyKey, descriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "before"));
+}
+//------------------------------------------------------------------------------
+// structure extension using Proxy and class trickery
+const _initialisers = {};
+export function struct(constructor) {
+    var _a;
+    _initialisers[constructor.name] = (instance, arg) => {
+        const properties = Object.getOwnPropertyNames(instance);
+        properties.forEach((key) => {
+            if (arg && arg[key] !== undefined) {
+                instance[key] = arg[key];
+            }
+        });
     };
-    fm[propertyKey] = newFunction;
+    const newConstructor = (_a = class extends constructor {
+            constructor(...args) {
+                super(...args);
+                const instance = this;
+                _initialisers[constructor.name](instance, args[0]);
+            }
+        },
+        _a.originalName = constructor.name,
+        _a);
+    // Set the name of the new constructor to be the same as the original
+    Object.defineProperty(newConstructor, 'name', { value: constructor.name });
+    return newConstructor;
 }
-
-*/
+export function extend(ExistingClass) {
+    return function (constructor) {
+        let initNewClass = (instance, args) => {
+            const newInstance = new constructor(); // construct AdditionalClass
+            const properties = Object.getOwnPropertyNames(newInstance);
+            properties.forEach((key) => {
+                if (args && args[key] !== undefined) {
+                    instance[key] = args[key];
+                }
+                else {
+                    instance[key] = newInstance[key];
+                }
+            });
+        };
+        let oldInit = _initialisers[ExistingClass.name];
+        _initialisers[ExistingClass.name] = (instance, arg) => {
+            oldInit(instance, arg);
+            initNewClass(instance, arg);
+        };
+        return constructor;
+    };
+}
+export function make(Cls, args) {
+    // @ts-ignore
+    return new Cls(args);
+}
+//------------------------------------------------------------------------------
+// global function manipulator (warning: affects "global" i.e. module scope)
+// Create a global function registry
+const functionRegistry = {};
+const functionNames = new Map();
+// Create a Proxy handler
+const handler = {
+    set(target, property, value) {
+        if (typeof value === 'function') {
+            functionRegistry[property] = value;
+            functionNames.set(value, property);
+        }
+        return Reflect.set(target, property, value);
+    }
+};
+// Create a Proxy for globalThis
+const proxiedGlobalThis = new Proxy(globalThis, handler);
+function isAsyncFunction(fn) {
+    return fn.constructor.name === 'AsyncFunction';
+}
+//------------------------------------------------------------------------------
+// Feature Manager
+export class FeatureManager {
+    constructor() {
+        this.isDebugging = false;
+    }
+    disable(featureNames) {
+        for (let mf of MetaFeature._all) {
+            mf.enabled = true;
+        }
+        for (let name of featureNames) {
+            let mf = MetaFeature._byname[name];
+            if (mf) {
+                mf.enabled = false;
+            }
+        }
+        this.rebuild();
+    }
+    readout(mf = null) {
+        if (!mf) {
+            mf = MetaFeature._byname["_Feature"].children[0];
+        }
+        if (mf.isEnabled()) {
+            console.log(mf.name);
+            console_indent();
+            for (let c of mf.children) {
+                this.readout(c);
+            }
+            console_undent();
+        }
+        else {
+            console.log(console_grey(mf.name));
+        }
+    }
+    debug(onOff) {
+        this.isDebugging = onOff;
+        this.rebuild();
+    }
+    rebuild() {
+        this.clearModuleScopeFunctions();
+        for (let mf of MetaFeature._all) {
+            if (mf.isEnabled()) {
+                this.buildFeature(mf);
+            }
+        }
+    }
+    buildFeature(mf) {
+        for (let mfn of mf.functions) {
+            let newFunction = this.buildFunction(mf, mfn);
+            if (this.isDebugging) {
+                newFunction = this.logFunction(mf, mfn, newFunction);
+            }
+            this.replaceModuleScopeFunction(mfn.name, newFunction);
+        }
+    }
+    logFunction(mf, mfn, func) {
+        if (isAsyncFunction(func)) {
+            return async function (...args) {
+                _stack.push(`${mf.name}.${mfn.name}`);
+                _suffix = `◀︎ ${_stack[_stack.length - 1]}`;
+                const result = await func(...args);
+                _stack.pop();
+                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length - 1]}` : '';
+                return result;
+            };
+        }
+        else {
+            return function (...args) {
+                _stack.push(`${mf.name}.${mfn.name}`);
+                _suffix = `◀︎ ${_stack[_stack.length - 1]}`;
+                const result = func(...args);
+                _stack.pop();
+                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length - 1]}` : '';
+                return result;
+            };
+        }
+    }
+    buildFunction(mf, mfn) {
+        if (mfn.decorator == "on") {
+            return this.buildOnFunction(mf, mfn);
+        }
+        else if (mfn.decorator == "after") {
+            return this.buildAfterFunction(mf, mfn);
+        }
+        else if (mfn.decorator == "before") {
+            return this.buildBeforeFunction(mf, mfn);
+        }
+        else {
+            throw new Error(`unknown decorator ${mfn.decorator}`);
+        }
+    }
+    buildOnFunction(mf, mfn) {
+        const boundMethod = mfn.method.bind(mf.instance);
+        return boundMethod;
+    }
+    buildAfterFunction(mf, mfn) {
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) {
+            throw new Error(`function ${mfn.name} not found`);
+        }
+        if (isAsyncFunction(originalFunction)) {
+            const newFunction = async function (...args) {
+                let _result = await originalFunction(...args);
+                return mfn.method.apply(mf.instance, [...args, _result]);
+            };
+            return newFunction;
+        }
+        else {
+            if (!isAsyncFunction(mfn.method)) {
+                throw new Error(`${mfn.name} must be async`);
+            }
+            const newFunction = function (...args) {
+                let _result = originalFunction(...args);
+                return mfn.method.apply(mf.instance, [...args, _result]);
+            };
+            return newFunction;
+        }
+    }
+    buildBeforeFunction(mf, mfn) {
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) {
+            throw new Error(`function ${mfn.name} not found`);
+        }
+        if (isAsyncFunction(originalFunction)) {
+            const newFunction = async function (...args) {
+                const newResult = await mfn.method.apply(mf.instance, args);
+                if (newResult !== undefined) {
+                    return newResult;
+                }
+                return originalFunction(...args);
+            };
+            return newFunction;
+        }
+        else {
+            if (!isAsyncFunction(mfn.method)) {
+                throw new Error(`${mfn.name} must be async`);
+            }
+            const newFunction = function (...args) {
+                const newResult = mfn.method.apply(mf.instance, args);
+                if (newResult !== undefined) {
+                    return newResult;
+                }
+                return originalFunction(...args);
+            };
+            return newFunction;
+        }
+    }
+    replaceModuleScopeFunction(name, newFn) {
+        if (functionRegistry[name]) {
+            proxiedGlobalThis[name] = newFn;
+            functionNames.set(newFn, name);
+        }
+        else {
+            this.defineModuleScopeFunction(name, newFn);
+        }
+    }
+    defineModuleScopeFunction(name, fn) {
+        proxiedGlobalThis[name] = fn;
+        functionNames.set(fn, name);
+    }
+    listModuleScopeFunctions() {
+        console.log("Defined functions:", Object.keys(functionRegistry));
+    }
+    clearModuleScopeFunctions() {
+        for (let name of Object.keys(functionRegistry)) {
+            const fn = proxiedGlobalThis[name];
+            delete proxiedGlobalThis[name];
+            functionNames.delete(fn);
+        }
+    }
+    getModuleScopeFunction(name) {
+        return functionRegistry[name];
+    }
+    getFunctionName(fn) {
+        return functionNames.get(fn);
+    }
+}
+export const fm = new FeatureManager();
+//------------------------------------------------------------------------------
+// Websockets
