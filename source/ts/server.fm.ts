@@ -4,9 +4,8 @@
 // author: asnaroo
 
 import * as os from "./os.ts";
-import * as features from "./fm.ts";
-
-const { _Feature, feature, on, after, before, fm, console_separator } = features;
+import { _Feature, feature, on, after, before, fm, console_separator } from "./fm.ts";
+import { load_shared } from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
 // Main doesn't do much
@@ -14,7 +13,7 @@ const { _Feature, feature, on, after, before, fm, console_separator } = features
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @on async server() { console.log("ᕦ(ツ)ᕤ server"); }
+    @on async server() { console.log("ᕦ(ツ)ᕤ server"); load_shared(); }
 }
 
 //------------------------------------------------------------------------------
@@ -127,6 +126,7 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
 
 console_separator();
 fm.readout();
+fm.listModuleScopeFunctions();
 fm.debug(true);
 console_separator();
 

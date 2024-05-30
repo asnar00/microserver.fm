@@ -289,7 +289,7 @@ export class FeatureManager {
     }
 
     readout(mf: MetaFeature|null=null) {
-        if (!mf) {  mf = MetaFeature._byname["_Feature"].children[0]; }
+        if (!mf) {  mf = MetaFeature._byname["_Feature"]; }
         if (mf.isEnabled()) {
             console.log(mf.name);
             console_indent();

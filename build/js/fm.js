@@ -2,6 +2,15 @@
 // fm.ts
 // author: asnaroo
 // feature-modular typescript
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 //------------------------------------------------------------------------------
 // logging
 let _indent = ""; // start of each console for indenting
@@ -257,7 +266,7 @@ export class FeatureManager {
     }
     readout(mf = null) {
         if (!mf) {
-            mf = MetaFeature._byname["_Feature"].children[0];
+            mf = MetaFeature._byname["_Feature"];
         }
         if (mf.isEnabled()) {
             console.log(mf.name);
@@ -294,13 +303,15 @@ export class FeatureManager {
     }
     logFunction(mf, mfn, func) {
         if (isAsyncFunction(func)) {
-            return async function (...args) {
-                _stack.push(`${mf.name}.${mfn.name}`);
-                _suffix = `◀︎ ${_stack[_stack.length - 1]}`;
-                const result = await func(...args);
-                _stack.pop();
-                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length - 1]}` : '';
-                return result;
+            return function (...args) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    _stack.push(`${mf.name}.${mfn.name}`);
+                    _suffix = `◀︎ ${_stack[_stack.length - 1]}`;
+                    const result = yield func(...args);
+                    _stack.pop();
+                    _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length - 1]}` : '';
+                    return result;
+                });
             };
         }
         else {
@@ -338,9 +349,11 @@ export class FeatureManager {
             throw new Error(`function ${mfn.name} not found`);
         }
         if (isAsyncFunction(originalFunction)) {
-            const newFunction = async function (...args) {
-                let _result = await originalFunction(...args);
-                return mfn.method.apply(mf.instance, [...args, _result]);
+            const newFunction = function (...args) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    let _result = yield originalFunction(...args);
+                    return mfn.method.apply(mf.instance, [...args, _result]);
+                });
             };
             return newFunction;
         }
@@ -361,12 +374,14 @@ export class FeatureManager {
             throw new Error(`function ${mfn.name} not found`);
         }
         if (isAsyncFunction(originalFunction)) {
-            const newFunction = async function (...args) {
-                const newResult = await mfn.method.apply(mf.instance, args);
-                if (newResult !== undefined) {
-                    return newResult;
-                }
-                return originalFunction(...args);
+            const newFunction = function (...args) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const newResult = yield mfn.method.apply(mf.instance, args);
+                    if (newResult !== undefined) {
+                        return newResult;
+                    }
+                    return originalFunction(...args);
+                });
             };
             return newFunction;
         }
