@@ -28,6 +28,7 @@ export declare const run: () => void;
 
 export declare const is_device_accessible: (d: Device) => Promise<boolean>;
 export declare const device_proxy: (d: Device, targetFunction: Function) => Function;
+export declare const are_you_there: () => boolean;
 
 declare const device_issue_rpc: (d: Device, functionName: string, params: any) => Promise<any>;
 
@@ -40,13 +41,12 @@ function paramList(func: Function) {
 }
 
 @feature class _Device extends _Feature {
+    @on are_you_there() : boolean { return true; }
     @on async is_device_accessible(d: Device) : Promise<boolean> {
         try {
-            const fetchUrl = `${d.url}:${d.port}`; // or some non-cached path
-            await fetch(fetchUrl, { method: 'PUT', cache: 'no-store', body: "{}"});
-            return true;    // if it gets here, we're good
-        } catch (error) {
-            return false;
+            return device_proxy(d, are_you_there)();
+        } catch(e) {
+            return false; 
         }
     }
     @on device_proxy(d: Device, targetFunction: Function) {

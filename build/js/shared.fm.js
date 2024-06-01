@@ -59,14 +59,13 @@ function paramList(func) {
     return params;
 }
 let _Device = class _Device extends _Feature {
+    are_you_there() { return true; }
     is_device_accessible(d) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const fetchUrl = `${d.url}:${d.port}`; // or some non-cached path
-                yield fetch(fetchUrl, { method: 'PUT', cache: 'no-store', body: "{}" });
-                return true; // if it gets here, we're good
+                return device_proxy(d, are_you_there)();
             }
-            catch (error) {
+            catch (e) {
                 return false;
             }
         });
@@ -107,6 +106,12 @@ let _Device = class _Device extends _Feature {
         });
     }
 };
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Boolean)
+], _Device.prototype, "are_you_there", null);
 __decorate([
     on,
     __metadata("design:type", Function),
