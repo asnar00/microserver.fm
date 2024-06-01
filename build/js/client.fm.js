@@ -20,15 +20,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { _Feature, feature, on, fm } from "./fm.js";
-import { load_shared } from "./shared.fm.js";
+var _Offline_1;
+import { _Feature, feature, on, after, fm } from "./fm.js";
+import * as shared from './shared.fm.js';
 let _Client = class _Client extends _Feature {
     client() {
         return __awaiter(this, void 0, void 0, function* () {
             console.log("ᕦ(ツ)ᕤ client");
-            load_shared();
             fm.readout();
             fm.listModuleScopeFunctions();
+            shared.load();
+            doSomething();
         });
     }
 };
@@ -41,4 +43,82 @@ __decorate([
 _Client = __decorate([
     feature
 ], _Client);
+let _Offline = _Offline_1 = class _Offline extends _Client {
+    setup() {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("_Offline.setup");
+            if ('serviceWorker' in navigator) {
+                try {
+                    let registration = yield navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        console.log('  already registered with scope:', registration.scope);
+                    }
+                    else {
+                        yield navigator.serviceWorker.register('/service-worker.js');
+                        registration = yield navigator.serviceWorker.getRegistration();
+                        if (registration)
+                            console.log('  registration successful with scope:', registration.scope);
+                        else
+                            console.log('  registration failed.');
+                    }
+                }
+                catch (err) {
+                    console.log('  registration failed:', err);
+                }
+            }
+            else {
+                console.log('  Service workers are not supported! Offline mode disabled.');
+            }
+        });
+    }
+    isServerAccessible(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // Add a unique query parameter to the URL to bypass the service worker cache
+                const fetchUrl = `${url}/amiup.json`;
+                const response = yield fetch(fetchUrl, {
+                    method: 'GET',
+                    cache: 'no-store',
+                });
+                return true; // if it gets here, we're good
+            }
+            catch (error) {
+                return false;
+            }
+        });
+    }
+    client() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield setup();
+            let online = yield isServerAccessible("http://localhost:8000");
+            _Offline_1.offline = !online;
+            if (online)
+                console.log("  connected");
+            else
+                console.log("  offline");
+        });
+    }
+};
+_Offline.offline = false;
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Offline.prototype, "setup", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], _Offline.prototype, "isServerAccessible", null);
+__decorate([
+    after,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Offline.prototype, "client", null);
+_Offline = _Offline_1 = __decorate([
+    feature
+], _Offline);
 addEventListener("load", () => { client(); });

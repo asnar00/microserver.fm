@@ -1,5 +1,192 @@
 # scribbles
 
+
+OK. We're going to do the vault, but our order of development is:
+
+1- be able to start the website even if the server is down (solo mode)
+2- cache files in a local db, so can access when the server is down
+
+----------------------------------------------------------------------------------------
+
+
+Let's call this concept a "Vault".
+
+A Vault is a single executable file containing encrypted data. To access the data, you run the executable, then log into it via HTTP on localhost:whatever (give it your email, it sends you a code, you give it the code, you're in). Once you're in, you can "see" the files it contains, and access them using a simple websocket based API (ls, cd, read, write).
+
+This is a super secure way of storing information, because there's no "key" or "password". Whoever holds the file, they can't access the data without also controlling your email address. We can make the login process arbitrarily complex.
+
+So the API is something like:
+
+    login(email);       // send one-time-pin to (email)
+    code(code);         // 4-letter one-time-pin
+    logout();           // log out on this machine
+    files();            // get a dictionary filename => type
+    read(path);         // just read the data
+    monitor(path);      // call-back when it changes
+    lock(path);         // lock for writing (steals lock)
+    write(path, obj);   // write to file (fails if someone else has lock)
+
+
+
+
+
+----------------------------------------------------------------------------------------
+
+
+Thought experiment: scaling from one machine.
+
+I have a "locker" which belongs to me, which contains a bunch of code and data.
+It's private to me and me alone; if I run the locker, and log into it, I can view the files and run the code.
+I can sell access to it (a paid login), and people can access the files in the locker.
+
+So this is the first concept: a safe data store.
+
+----------------------------------------------------------------------------------------
+
+Goal for next week: multi-point.
+
+Mac mini
+Ash laptop
+Phone
+
+all knitted into one application, that works whatever the connection environment.
+
+----------------------------------------------------------------------------------------
+
+Next step:
+
+the simplest possible "call any function" console interface.
+you type it, we run it wherever we damn well please.
+
+use this to implement login.
+
+
+
+----------------------------------------------------------------------------------------
+Ideas to explore tomorrow:
+
+- implications of, and limitations to, the "local-first" idea; is there a pragmatic middle way?
+- "the movable feast" idea: that 'server' could move from one machine to another
+    - a network that runs multiple parallel tasks, distributed across available machines
+    - thus fault-tolerant; if a machine disappears, we can redistribute its workload
+- idea of the "persistent process" : object-dictionary and computations, owned and accessed
+
+OK: one of the implications of the local-first thing is that if I have my browser hitting a localhost server, all computations are actually taking place on the same machine. 
+
+So, for instance, running an LLM. If you can see the server, you use it, if not, run it locally.
+It's the same computation and the same resources, just adapting to their local performance envelope.
+
+So there's this idea of a Context. It's ideally a single file, with all the structure hidden inside.
+
+It contains:
+1- a file system: actually just a dictionary mapping (path) to (object)
+2- the code, including all features we use
+
+To start with, the Context is just a dead file, and you're not connected to the internet, so you run it. This loads in all the active tasks and the filemap, figures out what roles there are within the context, and assigns them all to machines in the network.
+
+So in the chat example, a context contains:
+
+    a user authorisation list [(username, email)]
+    code to allow anyone to join the context
+    a set of "roles"
+
+A "role" is something like "user_asnaroo" or "client" or "server". We want shared code to describe the interaction between those roles, regardless of where they're instantiated.
+
+So we can create four users and a server, and run all those roles on this machine, if we want.
+Super useful for testing, of course. 
+
+
+
+
+--------------------------------------------------------------------------------
+Today was a good day: got the first fully fm client/server pair running and talking!
+There's a client.fm.ts, a server.fm.ts, and a shared.fm.ts,
+It turns out that if you get things right, you can have "client+shared" or "server+shared"
+and everything ends up in the same module-scope namespace, so function poking "just works".
+But that's a decent milestone really.
+
+By splitting the code into client, server, and shared, you ensure that you don't send more code
+to the client than you have to, you don't run client-only code on the server, but wherever there's
+interaction between them, you work "above the fray" in shared.fm.ts.
+
+Code in shared.fm.ts is really now where the design fun lies. 
+
+Good article on local-first (spotted randomly on twitter)
+https://www.inkandswitch.com/local-first/
+
+Lots of things are quite sensible here. This is a fun space to experiment in, so let's.
+
+--------------------------------------------------------------------------------
+Thoughts on the "shared" programming model.
+
+The key idea of shared-mode programming is that our scope is "above the fray". 
+Our physical cluster consists of multiple available resources, both data and processor, 
+and we wish to distribute a "virtual cluster" of 'tasks' (streams / live variables / shared-vars) across those resources.
+
+The key observation is that we should be able to dynamically re-distribute those tasks when the cluster changes, either by adding or removing a machine.
+
+Rather than try to be completely peer-to-peer, we'll work pragmatically in a local-first way, but with the server helping out as much as seems sensible.
+
+We want to enable the good stuff, like:
+
+    - works even when we're offline
+    - super-fast response (work on local copy with eventual dispersal)
+    - simple programming model
+    - distributes well across machines
+
+So this "machine" idea we'll actually call a "role". It's kind of like a ... "virtual server"?
+I don't know what to call it. But we can move it from one machine to another.
+
+So for example, I could "simulate" a chat with 2 users by spinning up 2 "nodes" running on my local machine. No worries. OK, so I totally dig this approach. It means that actually your local file environment is super important, you have your own stuff running on your machine talking to your local browser through localhost, and that is a normal and acceptable way of doing things. The server might go away and come back, but that's fine.
+
+So when we set you up, we set you up with a server that runs on your own machine, and you talk to it via your browswer pointing at localhost, and *it* talks to the remote server at microclub or wherever. So you're never going to an external URL, only a local one.
+
+The server is there as a machine that is "perennial" - it can always be relied on to be working and have the latest agreed wisdom, if you can get to it. When you can connect, you add your "trace" to the pool, and read back what relevant changes there have been. Both sides need to then resolve conflict somehow (I don't know, maybe... use AI to do it?) through a massive hand wave.
+
+So the architecture is:
+
+- maintain connection to server; note when it goes up and dowon
+- join a cluster, establish websockets via server
+
+I also quite like the idea that there's just a sort of "HTML stream" for the UI of each running "thingy". HMMMM so you can turn any object into html, and zap that html over to a browser which just displays it somehow in some framework UI. 
+
+--
+challenges are:
+1- user authentication. that's next.
+2- find clusters
+3- join cluster
+4- run stuff
+
+So first thing should be:
+
+1- converting an object to html, and having the html modify the object
+    1a - to "toHTML" function that we can keep overriding and adding to...
+    1b - a "fronHTML" pipeline (via listen etc) that calls functions
+
+Fundamentally, the UI is going to call functions, and it's going to call them through this great proxying system that lets us surround every damn function call with a bunch of stuff, turn-on-and-offably, with small-grained control. Like, turn off logging, graphing, everything, just run clean, or turn on just graphing, for groups of functions, or features, or whatever.
+
+It's just potentially SO COOL.
+
+Let's think about "pots" - it's a folder that a group of people shares.
+You can gain access to that folder; once you have access, you have a local copy of whatever you're interested in (subscribed to).
+
+Access control of a "zone" or "box" rests with the owners. It's like a whatsapp group with a bunch of files. It's out there somewhere (on a server maybe) but encypted so only the owners can access it. Once we access it, we get local copies of everything, and ensure that we can keep working even if the server disappears.
+
+here's an empty room "room1" owned by asnaroo
+
+It's a persistent computation that's carrying on, its state evolving, every time it runs. It's effectively an autonomous process. It can shut down for a long time, but then when someone runs it and joins it, they get allowed access, and thenceforth they can subscribe to any file, and edit it any way they want. It's AMAZING.
+
+This concept of a shared object-state-set (name => object) OMG that's all it is. 
+
+    object["path"] => just gives you the object.
+
+    listen_object([object["path"], uiState], () => { display(object["path"], uiState); }
+
+There's a UI on your local machine that talks to your local object, and you get mod
+requests from other machines (via the server).
+
+--------------------------------------------------------------------------------
+
 Okey. Now for multi-point programming.
 
 The obvious and most fun thing to do is to look at the hello name example.

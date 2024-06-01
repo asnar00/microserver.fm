@@ -5,7 +5,7 @@
 
 import * as os from "./os.ts";
 import { _Feature, feature, on, after, before, fm, console_separator } from "./fm.ts";
-import { load_shared } from "./shared.fm.ts";
+import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
 // Main doesn't do much
@@ -13,7 +13,7 @@ import { load_shared } from "./shared.fm.ts";
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @on async server() { console.log("ᕦ(ツ)ᕤ server"); load_shared(); }
+    @on async server() { console.log("ᕦ(ツ)ᕤ server"); shared.load(); }
 }
 
 //------------------------------------------------------------------------------
@@ -53,6 +53,7 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
 
 @feature class _Get extends _Server {
     static publicFolder: string = os.cwd().replaceAll("/source/ts", "/public");
+    static rootFolder: string = os.cwd().replaceAll("/source/ts", "/");
     
     @on getPathFromUrl(url: string): string {
         return url.slice("http://localhost:8000".length);
@@ -65,7 +66,7 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
     @on async serveFile(req: Request): Promise<Response|undefined> {
         let path = translatePath(req.url);
         if (path) {
-            console.log(path.replace(_Get.publicFolder, ""));
+            console.log(path.replace(_Get.rootFolder, ""));
             return await os.serveFile(req, path); 
         }
     }

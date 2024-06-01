@@ -126,10 +126,12 @@ class MetaFunction {
     name: string;               // as it appears in global space
     method: Function;           // function (...args: any[]): any
     decorator: string;          // on, after, before
+    isAsync: boolean;           // true if the function is async
     constructor(name: string, method: Function, decorator: string) {
         this.name = name;
         this.method = method;
         this.decorator = decorator;
+        this.isAsync = isAsyncFunction(method);
     }
 }
 
@@ -268,7 +270,8 @@ const proxiedGlobalThis = new Proxy(globalThis, handler);
 type AsyncFunction = (...args: any[]) => Promise<any>;
 
 function isAsyncFunction(fn: Function): fn is AsyncFunction {
-    return fn.constructor.name === 'AsyncFunction';
+    let fnString = fn.toString().trim();
+    return (fnString.startsWith("async") || fnString.includes("__awaiter")); // works in deno or js
 }
 
 //------------------------------------------------------------------------------
@@ -289,7 +292,10 @@ export class FeatureManager {
     }
 
     readout(mf: MetaFeature|null=null) {
-        if (!mf) {  mf = MetaFeature._byname["_Feature"]; }
+        if (!mf) {  
+            mf = MetaFeature._byname["_Feature"]; 
+            console.log("Defined features:");
+        }
         if (mf.isEnabled()) {
             console.log(mf.name);
             console_indent();
@@ -325,7 +331,7 @@ export class FeatureManager {
     }
 
     logFunction(mf: MetaFeature, mfn: MetaFunction, func: Function) : Function {
-        if (isAsyncFunction(func)) {
+        if (mfn.isAsync) {
             return async function (...args: any[]) {
                 _stack.push(`${mf.name}.${mfn.name}`);
                 _suffix = `◀︎ ${_stack[_stack.length-1]}`;
@@ -361,14 +367,14 @@ export class FeatureManager {
     buildAfterFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) { throw new Error(`function ${mfn.name} not found`); }
-        if (isAsyncFunction(originalFunction)) {
+        if (mfn.isAsync) {
             const newFunction = async function (...args: any[]) {
                 let _result = await originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
             };
             return newFunction;
         } else {
-            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mfn.name} must be async`); }
+            if (!mfn.isAsync) { throw new Error(`@after: ${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 let _result = originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
@@ -380,7 +386,7 @@ export class FeatureManager {
     buildBeforeFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) { throw new Error(`function ${mfn.name} not found`); }
-        if (isAsyncFunction(originalFunction)) {
+        if (mfn.isAsync) {
             const newFunction =  async function (...args: any[]) {
                 const newResult = await mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }
@@ -388,7 +394,7 @@ export class FeatureManager {
             };
             return newFunction;
         } else {
-            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mfn.name} must be async`); }
+            if (!mfn.isAsync) { throw new Error(`@before: ${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 const newResult = mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }

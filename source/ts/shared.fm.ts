@@ -3,19 +3,18 @@
 // feature-modular experiments
 // author: asnaroo
 
-import { _Feature, feature, on, after, before, fm, console_separator }  from "./fm.js";
+import { _Feature, feature, on, after, before}  from "./fm.js";
 
 //-----------------------------------------------------------------------------
 // Run
 
-export const load_shared = () => {};
-export const run = () => { console.log("shared run!"); };
+export const load = () => { console.log("loaded shared module"); };
 
 //-----------------------------------------------------------------------------
 // Do Something
 
-declare const doSomething : () => void;
+export declare const doSomething: () => void;
 
 @feature class _DoSomething extends _Feature {
-    @on doSomething() { console.log("doSomething"); }
+     @on doSomething() { console.log("modified doSomething"); }
 }

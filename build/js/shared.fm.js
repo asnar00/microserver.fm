@@ -14,10 +14,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 import { _Feature, feature, on } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Run
-export const load_shared = () => { };
-export const run = () => { console.log("shared run!"); };
+export const load = () => { console.log("loaded shared module"); };
 let _DoSomething = class _DoSomething extends _Feature {
-    doSomething() { console.log("doSomething"); }
+    doSomething() { console.log("modified doSomething"); }
 };
 __decorate([
     on,

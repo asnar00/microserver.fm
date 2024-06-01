@@ -127,6 +127,7 @@ class MetaFunction {
         this.name = name;
         this.method = method;
         this.decorator = decorator;
+        this.isAsync = isAsyncFunction(method);
     }
 }
 // everything there is to know about a property defined inside a feature
@@ -244,7 +245,8 @@ const handler = {
 // Create a Proxy for globalThis
 const proxiedGlobalThis = new Proxy(globalThis, handler);
 function isAsyncFunction(fn) {
-    return fn.constructor.name === 'AsyncFunction';
+    let fnString = fn.toString().trim();
+    return (fnString.startsWith("async") || fnString.includes("__awaiter")); // works in deno or js
 }
 //------------------------------------------------------------------------------
 // Feature Manager
@@ -267,6 +269,7 @@ export class FeatureManager {
     readout(mf = null) {
         if (!mf) {
             mf = MetaFeature._byname["_Feature"];
+            console.log("Defined features:");
         }
         if (mf.isEnabled()) {
             console.log(mf.name);
@@ -302,7 +305,7 @@ export class FeatureManager {
         }
     }
     logFunction(mf, mfn, func) {
-        if (isAsyncFunction(func)) {
+        if (mfn.isAsync) {
             return function (...args) {
                 return __awaiter(this, void 0, void 0, function* () {
                     _stack.push(`${mf.name}.${mfn.name}`);
@@ -348,7 +351,7 @@ export class FeatureManager {
         if (!originalFunction) {
             throw new Error(`function ${mfn.name} not found`);
         }
-        if (isAsyncFunction(originalFunction)) {
+        if (mfn.isAsync) {
             const newFunction = function (...args) {
                 return __awaiter(this, void 0, void 0, function* () {
                     let _result = yield originalFunction(...args);
@@ -358,8 +361,8 @@ export class FeatureManager {
             return newFunction;
         }
         else {
-            if (!isAsyncFunction(mfn.method)) {
-                throw new Error(`${mfn.name} must be async`);
+            if (!mfn.isAsync) {
+                throw new Error(`@after: ${mfn.name} must be async`);
             }
             const newFunction = function (...args) {
                 let _result = originalFunction(...args);
@@ -373,7 +376,7 @@ export class FeatureManager {
         if (!originalFunction) {
             throw new Error(`function ${mfn.name} not found`);
         }
-        if (isAsyncFunction(originalFunction)) {
+        if (mfn.isAsync) {
             const newFunction = function (...args) {
                 return __awaiter(this, void 0, void 0, function* () {
                     const newResult = yield mfn.method.apply(mf.instance, args);
@@ -386,8 +389,8 @@ export class FeatureManager {
             return newFunction;
         }
         else {
-            if (!isAsyncFunction(mfn.method)) {
-                throw new Error(`${mfn.name} must be async`);
+            if (!mfn.isAsync) {
+                throw new Error(`@before: ${mfn.name} must be async`);
             }
             const newFunction = function (...args) {
                 const newResult = mfn.method.apply(mf.instance, args);
