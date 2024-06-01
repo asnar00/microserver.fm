@@ -23,6 +23,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var _Offline_1;
 import { _Feature, feature, on, after, fm } from "./fm.js";
 import * as shared from './shared.fm.js';
+addEventListener("load", () => { client(); });
 let _Client = class _Client extends _Feature {
     client() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -121,4 +122,3 @@ __decorate([
 _Offline = _Offline_1 = __decorate([
     feature
 ], _Offline);
-addEventListener("load", () => { client(); });

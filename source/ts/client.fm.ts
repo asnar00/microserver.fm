@@ -6,6 +6,8 @@
 import { _Feature, feature, on, after, before, fm, console_separator }  from "./fm.js";
 import * as shared from './shared.fm.js';
 
+addEventListener("load", () => { client(); });
+
 // -----------------------------------------------------------------------------
 // declarations from shared module. todo: find a way to automate this. later.
 
@@ -79,6 +81,3 @@ declare const isServerAccessible: (url: string) => Promise<boolean>;
         if (online) console.log("  connected"); else console.log("  offline");
     }
 }
-
-addEventListener("load", () => { client(); });
-
