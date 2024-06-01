@@ -124,12 +124,16 @@ MetaFeature._byname = {}; // map feature name to MetaFeature
 // everything there is to know about a function defined inside a feature
 class MetaFunction {
     constructor(name, method, decorator) {
+        this.params = []; // parameter names  
         this.name = name;
         this.method = method;
         this.decorator = decorator;
         this.isAsync = isAsyncFunction(method);
+        this.params = listParams(method);
+        MetaFunction._byName[name] = this;
     }
 }
+MetaFunction._byName = {};
 // everything there is to know about a property defined inside a feature
 class MetaProperty {
     constructor(name) {
@@ -247,6 +251,12 @@ const proxiedGlobalThis = new Proxy(globalThis, handler);
 function isAsyncFunction(fn) {
     let fnString = fn.toString().trim();
     return (fnString.startsWith("async") || fnString.includes("__awaiter")); // works in deno or js
+}
+function listParams(func) {
+    const funcStr = func.toString();
+    const paramStr = funcStr.match(/\(([^)]*)\)/)[1];
+    const params = paramStr.split(',').map(param => param.trim().split('=')[0].trim()).filter(param => param);
+    return params;
 }
 //------------------------------------------------------------------------------
 // Feature Manager
@@ -430,6 +440,9 @@ export class FeatureManager {
     }
     getFunctionName(fn) {
         return functionNames.get(fn);
+    }
+    getFunctionParams(name) {
+        return MetaFunction._byName[name].params;
     }
 }
 export const fm = new FeatureManager();

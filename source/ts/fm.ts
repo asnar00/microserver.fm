@@ -127,11 +127,16 @@ class MetaFunction {
     method: Function;           // function (...args: any[]): any
     decorator: string;          // on, after, before
     isAsync: boolean;           // true if the function is async
+    params: string[] = [];      // parameter names  
+
+    static _byName: { [name: string]: MetaFunction } = {};
     constructor(name: string, method: Function, decorator: string) {
         this.name = name;
         this.method = method;
         this.decorator = decorator;
         this.isAsync = isAsyncFunction(method);
+        this.params = listParams(method);
+        MetaFunction._byName[name] = this; 
     }
 }
 
@@ -185,6 +190,7 @@ export function before(target: any, propertyKey: string, descriptor: PropertyDes
     const mf = MetaFeature._findOrCreate(className);
     mf.addFunction(new MetaFunction(propertyKey, method, "before"));
 }
+
 
 //------------------------------------------------------------------------------
 // structure extension using Proxy and class trickery
@@ -272,6 +278,13 @@ type AsyncFunction = (...args: any[]) => Promise<any>;
 function isAsyncFunction(fn: Function): fn is AsyncFunction {
     let fnString = fn.toString().trim();
     return (fnString.startsWith("async") || fnString.includes("__awaiter")); // works in deno or js
+}
+
+function listParams(func: Function): string[] {
+    const funcStr = func.toString();
+    const paramStr = funcStr.match(/\(([^)]*)\)/)![1];
+    const params = paramStr.split(',').map(param => param.trim().split('=')[0].trim()).filter(param => param);
+    return params;
 }
 
 //------------------------------------------------------------------------------
@@ -436,6 +449,10 @@ export class FeatureManager {
 
     getFunctionName(fn: Function) {
         return functionNames.get(fn);
+    }
+
+    getFunctionParams(name: string) {
+        return MetaFunction._byName[name].params;
     }
 }
 

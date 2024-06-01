@@ -26,8 +26,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then((networkResponse) => {
-                // add to cache if request was successful and url is in the list
-                if (event.request.method != "GET") {
+                if (event.request.method == "PUT") {
+                    // nothing to do
+                } else if (event.request.method != "GET") {
+                    // add to cache if request was successful and url is in the list
                     const requestUrl = new URL(event.request.url);
                     if (urlsToCache.includes(requestUrl.pathname)) {
                         const responseClone = networkResponse.clone();

@@ -102,6 +102,7 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
         let params = await req.json();
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
+            console.log("calling:", functionName, "with", params);
             let result : any = func(...Object.values(params));
             if (result instanceof Promise) { result = await result; }
             return new Response(JSON.stringify(result), { status: 200 });
@@ -113,17 +114,6 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
         if (req.method === "PUT") {
             return callFunction(req);
         }
-    }
-}
-
-//------------------------------------------------------------------------------
-// Greet adds a "greet" function that returns a greeting
-
-@feature class _Greet extends _Put {
-    @on greet(name: string): string {
-        let result = `Hello, ${name}!`;
-        console.log(result);
-        return result;
     }
 }
 

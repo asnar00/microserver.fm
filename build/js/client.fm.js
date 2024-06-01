@@ -92,7 +92,7 @@ let _Offline = _Offline_1 = class _Offline extends _Client {
     client() {
         return __awaiter(this, void 0, void 0, function* () {
             yield setup();
-            let online = yield device_accessible(_Offline_1.server);
+            let online = yield is_device_accessible(_Offline_1.server);
             _Offline_1.offline = !online;
             if (online)
                 console.log("  connected");
@@ -118,7 +118,7 @@ _Offline = _Offline_1 = __decorate([
     feature
 ], _Offline);
 //-----------------------------------------------------------------------------
-// Run runs shared things
+// Run
 let _Run = class _Run extends _Client {
     client() {
         return __awaiter(this, void 0, void 0, function* () { run(); });

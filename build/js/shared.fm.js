@@ -20,22 +20,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { _Feature, feature, on, struct } from "./fm.js";
+import { _Feature, feature, on, after, struct, make, fm } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Run
 export const load = () => { console.log("loaded shared module"); };
-let _DoSomething = class _DoSomething extends _Feature {
-    run() { console.log("shared run"); }
+let _Shared = class _Shared extends _Feature {
+    run() {
+        return __awaiter(this, void 0, void 0, function* () { console.log("shared run"); });
+    }
 };
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], _DoSomething.prototype, "run", null);
-_DoSomething = __decorate([
+    __metadata("design:returntype", Promise)
+], _Shared.prototype, "run", null);
+_Shared = __decorate([
     feature
-], _DoSomething);
+], _Shared);
 //-----------------------------------------------------------------------------
 // Devices : things like servers, laptops, phones, drones, etc.
 // a Device is accessible via network; has URL and port.
@@ -50,8 +52,14 @@ Device = __decorate([
     struct
 ], Device);
 export { Device };
+function paramList(func) {
+    const funcStr = func.toString();
+    const paramStr = funcStr.match(/\(([^)]*)\)/)[1];
+    const params = paramStr.split(',').map(param => param.trim()).filter(param => param);
+    return params;
+}
 let _Device = class _Device extends _Feature {
-    device_accessible(d) {
+    is_device_accessible(d) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const fetchUrl = `${d.url}:${d.port}`; // or some non-cached path
@@ -64,45 +72,90 @@ let _Device = class _Device extends _Feature {
         });
     }
     device_proxy(d, targetFunction) {
-        const functionName = targetFunction.name;
+        let functionName = targetFunction.name;
+        if (functionName.startsWith("bound ")) {
+            functionName = functionName.slice(6);
+        }
+        const paramNames = fm.getFunctionParams(functionName);
         return new Proxy(targetFunction, {
             apply: function (target, thisArg, argumentsList) {
                 return __awaiter(this, void 0, void 0, function* () {
                     const params = {};
-                    const paramNames = target.toString().match(/\(([^)]*)\)/)[1].split(',').map(param => param.trim());
                     paramNames.forEach((paramName, index) => {
                         params[paramName] = argumentsList[index];
                     });
-                    const response = yield fetch(`${d.url}:${d.port}/${functionName}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(params)
-                    });
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    const responseData = yield response.json();
-                    return responseData.result;
+                    return device_issue_rpc(d, functionName, params);
                 });
             }
         });
     }
     ;
+    device_issue_rpc(d, functionName, params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const response = yield fetch(`${d.url}:${d.port}/${functionName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const responseData = yield response.json();
+            return responseData;
+        });
+    }
 };
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device]),
     __metadata("design:returntype", Promise)
-], _Device.prototype, "device_accessible", null);
+], _Device.prototype, "is_device_accessible", null);
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device, Function]),
     __metadata("design:returntype", void 0)
 ], _Device.prototype, "device_proxy", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Device, String, Object]),
+    __metadata("design:returntype", Promise)
+], _Device.prototype, "device_issue_rpc", null);
 _Device = __decorate([
     feature
 ], _Device);
+let _Greet = class _Greet extends _Shared {
+    greet(name) {
+        let result = `hello, ${name}!`;
+        console.log(result);
+        return result;
+    }
+    run() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const server = make(Device, { url: "http://localhost", port: 8000 });
+            greet("asnaroo");
+            const server_greet = device_proxy(server, greet);
+            const msg = yield server_greet("asnaroo");
+            console.log("server:", msg);
+        });
+    }
+};
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", String)
+], _Greet.prototype, "greet", null);
+__decorate([
+    after,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Greet.prototype, "run", null);
+_Greet = __decorate([
+    feature
+], _Greet);

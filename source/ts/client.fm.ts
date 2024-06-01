@@ -13,7 +13,7 @@ addEventListener("load", () => { client(); });
 // declarations from shared module. todo: find a way to automate this. later.
 
 declare const run: () => void;
-declare const device_accessible: (device: Device) => Promise<boolean>;
+declare const is_device_accessible: (device: Device) => Promise<boolean>;
 
 //-----------------------------------------------------------------------------
 // _Client runs on the browser
@@ -34,7 +34,6 @@ declare const client: () => Promise<void>;
 // _Offline ensures that website can load when offline
 
 declare const setup: () => void;
-declare const isServerAccessible: (url: string) => Promise<boolean>;
 
 @feature class _Offline extends _Client {
     static offline: boolean = false;
@@ -80,14 +79,14 @@ declare const isServerAccessible: (url: string) => Promise<boolean>;
 
     @after async client() { 
         await setup(); 
-        let online = await device_accessible(_Offline.server);
+        let online = await is_device_accessible(_Offline.server);
         _Offline.offline = !online;
         if (online) console.log("  connected"); else console.log("  offline");
     }
 }
 
 //-----------------------------------------------------------------------------
-// Run runs shared things
+// Run
 
 @feature class _Run extends _Client {
     @after async client() { run(); }
