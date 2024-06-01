@@ -105,6 +105,8 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
             let result : any = func(...Object.values(params));
             if (result instanceof Promise) { result = await result; }
             return new Response(JSON.stringify(result), { status: 200 });
+        } else {
+            return notFound();
         }
     }
     @before async handle(req: Request): Promise<Response|undefined> {

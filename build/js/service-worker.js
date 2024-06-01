@@ -22,24 +22,31 @@ self.addEventListener('install', (event) => {
 
 // Try the fetch, return cached response if no network
 self.addEventListener('fetch', (event) => {
+    let canary = "yeah baby";
     event.respondWith(
         fetch(event.request)
             .then((networkResponse) => {
                 // add to cache if request was successful and url is in the list
-                const requestUrl = new URL(event.request.url);
-                if (urlsToCache.includes(requestUrl.pathname)) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
+                if (event.request.method != "GET") {
+                    const requestUrl = new URL(event.request.url);
+                    if (urlsToCache.includes(requestUrl.pathname)) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseClone);
+                        });
+                    }
                 }
                 return networkResponse;
             })
         .catch(() => {
-            // Try to get the response from the cache
-            return caches.match(event.request).then((cachedResponse) => {
-                return cachedResponse || Promise.reject('no-match');
-            });
+            if (event.request.method != "GET") {
+                return Promise.reject('no-match');
+            } else {
+                // Try to get the response from the cache
+                return caches.match(event.request).then((cachedResponse) => {
+                    return cachedResponse || Promise.reject('no-match');
+                });
+            }
         })
     );
 });

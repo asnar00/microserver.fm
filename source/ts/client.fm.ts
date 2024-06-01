@@ -3,15 +3,17 @@
 // feature-modular server
 // author: asnaroo
 
-import { _Feature, feature, on, after, before, fm, console_separator }  from "./fm.js";
+import { _Feature, feature, on, after, before, make, fm, console_separator }  from "./fm.js";
 import * as shared from './shared.fm.js';
+import { Device } from './shared.fm.js';
 
 addEventListener("load", () => { client(); });
 
 // -----------------------------------------------------------------------------
 // declarations from shared module. todo: find a way to automate this. later.
 
-declare const doSomething: () => void;
+declare const run: () => void;
+declare const device_accessible: (device: Device) => Promise<boolean>;
 
 //-----------------------------------------------------------------------------
 // _Client runs on the browser
@@ -19,12 +21,12 @@ declare const doSomething: () => void;
 declare const client: () => Promise<void>;
 
 @feature class _Client extends _Feature {
+    static server = make(Device, { url: "http://localhost", port: 8000 });
     @on async client() { 
         console.log("ᕦ(ツ)ᕤ client"); 
         fm.readout();
         fm.listModuleScopeFunctions();
         shared.load();
-        doSomething();
     }
 }
 
@@ -49,9 +51,25 @@ declare const isServerAccessible: (url: string) => Promise<boolean>;
                     registration = await navigator.serviceWorker.getRegistration();
                     if (registration)
                         console.log('  registration successful with scope:', registration.scope);
-                    else 
+                    else {
                         console.log('  registration failed.');
+                        return;
+                    }
                 }
+
+                registration!.onupdatefound = () => {
+                    const installingWorker = registration!.installing;
+                    installingWorker!.onstatechange = () => {
+                        if (installingWorker!.state === 'installed') {
+                        if (navigator.serviceWorker.controller) {
+                            console.log('New or updated service worker is installed.');
+                        } else {
+                            console.log('Service worker is installed for the first time.');
+                        }
+                        }
+                    };
+                };
+                registration!.update();
             } catch (err) {
                 console.log('  registration failed:', err);
             }
@@ -60,24 +78,17 @@ declare const isServerAccessible: (url: string) => Promise<boolean>;
         }
     }
 
-    @on async isServerAccessible(url: string): Promise<boolean> {
-        try {
-            // Add a unique query parameter to the URL to bypass the service worker cache
-            const fetchUrl = `${url}/amiup.json`;
-            const response = await fetch(fetchUrl, {
-                method: 'GET',
-                cache: 'no-store',
-            });
-            return true;    // if it gets here, we're good
-        } catch (error) {
-            return false;
-        }
-    }
-
     @after async client() { 
         await setup(); 
-        let online = await isServerAccessible("http://localhost:8000");
+        let online = await device_accessible(_Offline.server);
         _Offline.offline = !online;
         if (online) console.log("  connected"); else console.log("  offline");
     }
+}
+
+//-----------------------------------------------------------------------------
+// Run runs shared things
+
+@feature class _Run extends _Client {
+    @after async client() { run(); }
 }
