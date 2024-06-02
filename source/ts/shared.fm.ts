@@ -26,11 +26,11 @@ export declare const run: () => void;
 
 @struct export class Device { url: string = ""; port: number = 0; }
 
-export declare const is_device_accessible: (d: Device) => Promise<boolean>;
-export declare const device_proxy: (d: Device, targetFunction: Function) => Function;
-export declare const are_you_there: () => boolean;
+export declare const ping: (d: Device) => Promise<boolean>;
+export declare const remote: (d: Device, targetFunction: Function) => Function;
+export declare const stub: () => boolean;
 
-declare const device_issue_rpc: (d: Device, functionName: string, params: any) => Promise<any>;
+declare const rpc: (d: Device, functionName: string, params: any) => Promise<any>;
 
 
 function paramList(func: Function) {
@@ -41,15 +41,15 @@ function paramList(func: Function) {
 }
 
 @feature class _Device extends _Feature {
-    @on are_you_there() : boolean { return true; }
-    @on async is_device_accessible(d: Device) : Promise<boolean> {
+    @on stub() : boolean { return true; }
+    @on async ping(d: Device) : Promise<boolean> {
         try {
-            return device_proxy(d, are_you_there)();
+            return remote(d, stub)();
         } catch(e) {
             return false; 
         }
     }
-    @on device_proxy(d: Device, targetFunction: Function) {
+    @on remote(d: Device, targetFunction: Function) {
         let functionName = targetFunction.name;
         if (functionName.startsWith("bound ")) { functionName = functionName.slice(6); }
         const paramNames = fm.getFunctionParams(functionName);
@@ -59,11 +59,11 @@ function paramList(func: Function) {
                 paramNames.forEach((paramName, index) => {
                     params[paramName] = argumentsList[index];
                 });
-                return device_issue_rpc(d, functionName, params);
+                return rpc(d, functionName, params);
             }
         });
     };
-    @on async device_issue_rpc(d: Device, functionName: string, params: any) {
+    @on async rpc(d: Device, functionName: string, params: any) {
         const response = await fetch(`${d.url}:${d.port}/${functionName}`, {
             method: 'PUT',
             headers: {
@@ -94,8 +94,7 @@ declare const greet: (name: string) => string;
     @after async run() {
         const server = make(Device, { url: "http://localhost", port: 8000 });
         greet("asnaroo");
-        const server_greet = device_proxy(server, greet);
-        const msg = await server_greet("asnaroo");
+        const msg = await remote(server, greet)("asnaroo");
         console.log("server:", msg);
     }
 }

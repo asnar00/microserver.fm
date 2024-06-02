@@ -13,7 +13,7 @@ addEventListener("load", () => { client(); });
 // declarations from shared module. todo: find a way to automate this. later.
 
 declare const run: () => void;
-declare const is_device_accessible: (device: Device) => Promise<boolean>;
+declare const ping: (device: Device) => Promise<boolean>;
 
 //-----------------------------------------------------------------------------
 // _Client runs on the browser
@@ -79,7 +79,7 @@ declare const setup: () => void;
 
     @after async client() { 
         await setup(); 
-        let online = await is_device_accessible(_Offline.server);
+        let online = await ping(_Offline.server);
         _Offline.offline = !online;
         if (online) console.log("  connected"); else console.log("  offline");
     }

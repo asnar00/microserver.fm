@@ -59,18 +59,18 @@ function paramList(func) {
     return params;
 }
 let _Device = class _Device extends _Feature {
-    are_you_there() { return true; }
-    is_device_accessible(d) {
+    stub() { return true; }
+    ping(d) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                return device_proxy(d, are_you_there)();
+                return remote(d, stub)();
             }
             catch (e) {
                 return false;
             }
         });
     }
-    device_proxy(d, targetFunction) {
+    remote(d, targetFunction) {
         let functionName = targetFunction.name;
         if (functionName.startsWith("bound ")) {
             functionName = functionName.slice(6);
@@ -83,13 +83,13 @@ let _Device = class _Device extends _Feature {
                     paramNames.forEach((paramName, index) => {
                         params[paramName] = argumentsList[index];
                     });
-                    return device_issue_rpc(d, functionName, params);
+                    return rpc(d, functionName, params);
                 });
             }
         });
     }
     ;
-    device_issue_rpc(d, functionName, params) {
+    rpc(d, functionName, params) {
         return __awaiter(this, void 0, void 0, function* () {
             const response = yield fetch(`${d.url}:${d.port}/${functionName}`, {
                 method: 'PUT',
@@ -111,25 +111,25 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Boolean)
-], _Device.prototype, "are_you_there", null);
+], _Device.prototype, "stub", null);
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device]),
     __metadata("design:returntype", Promise)
-], _Device.prototype, "is_device_accessible", null);
+], _Device.prototype, "ping", null);
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device, Function]),
     __metadata("design:returntype", void 0)
-], _Device.prototype, "device_proxy", null);
+], _Device.prototype, "remote", null);
 __decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device, String, Object]),
     __metadata("design:returntype", Promise)
-], _Device.prototype, "device_issue_rpc", null);
+], _Device.prototype, "rpc", null);
 _Device = __decorate([
     feature
 ], _Device);
@@ -143,8 +143,7 @@ let _Greet = class _Greet extends _Shared {
         return __awaiter(this, void 0, void 0, function* () {
             const server = make(Device, { url: "http://localhost", port: 8000 });
             greet("asnaroo");
-            const server_greet = device_proxy(server, greet);
-            const msg = yield server_greet("asnaroo");
+            const msg = yield remote(server, greet)("asnaroo");
             console.log("server:", msg);
         });
     }
