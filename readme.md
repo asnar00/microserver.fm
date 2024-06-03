@@ -17,19 +17,19 @@ A side effect of this is that code is no longer bound to *classes*; rather, code
 
 ## feature-modular typescript
 
-fm.ts is implemented using just four decorators, `@feature`, `@on`, `@after`, and `@before`. We'll demonstrate how they work using the classic 'hello world' example.
+fm.ts is implemented using a few decorators: `@feature`, `@def`, `@replace`, `@after`, `@before`, and `@on`. We'll demonstrate how they work using the classic 'hello world' example.
 
 A feature clause in fm.ts is declared by creating a class decorated with the `@feature` decorator, as follows:
 
     declare const main: () => void;         // the feature 'Main' declares a new function main()
 
     @feature class _Main extends _Feature {
-        @on main() {}
+        @def main() {}
     }
 
 This declares a new feature called `_Main`, extending the base feature (`_Feature`). Note: all feature names start with an underscore in order to avoid name collision with class names.
 
-The `@on` decorator pokes the definition of the method `main` into the global function `main()`. This means you can just call it as if it were a normal function:
+The `@def` decorator pokes the definition of the method `main` into the global function `main()`. This means you can just call it as if it were a normal function:
 
     main()
 
@@ -40,22 +40,22 @@ If we want to add behaviour to this program, rather than editing the original de
     declare const hello: (name: string) => void;        // the feature 'Hello' declares a new function hello()
 
     @feature class _Hello extends _Main {
-        @on hello(name: string) { console.log(`hello, ${name}!"); }
-        @on main() { hello("world"); }
+        @def hello(name: string) { console.log(`hello, ${name}!"); }
+        @after main() { hello("world"); }
     }
 
-The `@on` decorator replaces the original definition of `main()` with the new function; so now, calling `main()` prints:
+The `@after` decorator extends the function `main()` by adding a call to a new function `hello(...)`:
 
     hello, world!
 
-Notice the structure of this code: we first declare a new function using `@on`, and then we 'plug it in' to the existing program using `@after`. This just means "add a call to `hello` to the end of `main`".
+Notice the structure of this code: we first declare a new function using `@def`, and then we 'plug it in' to the existing program using `@after`.
 
 Now let's add another new feature: let's be polite and say "goodbye" after we're done.
 
     declare const bye: () => void;
 
     @feature class _Goodbye extends _Main {
-        @on bye() { console.log("kthxbye."); }
+        @def bye() { console.log("kthxbye."); }
         @after main() { bye(); }
     }
 
@@ -69,7 +69,7 @@ Similarly, you can add behaviour before an existing function using the `@before`
     declare const countdown: () => void;
 
     @feature class _Countdown extends _Main {
-        @on countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
+        @def countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
         @before main() { countdown(); }
     }
 
@@ -78,6 +78,8 @@ which results in this output from `main()`:
     10 9 8 7 6 5 4 3 2 1
     hello, world!
     kthxbye.
+
+Finally, the decorator `@on` extends an existing function by calling the new one in parallel with the old one. For this to work, neither the original nor the new function can return anything other than a Promise<void>. Since we can't check this at compile time, this functionality is a bit dangerous at the moment, but c'est la guerre until we figure out something better. The composite function so produced returns a `Promise.all` construct, so you can await the result if you wish.
 
 ## structs and struct extension
 
@@ -93,10 +95,10 @@ First, we define a base feature `_Colour` that sets up our basic RGB `Colour` st
     declare const test: () => void;
 
     @feature class _Colour extends _Feature {
-        @on add_colours(c1: Colour, c2: Colour): Colour {
+        @def add_colours(c1: Colour, c2: Colour): Colour {
             return make(Colour, {r: c1.r + c2.r, g: c1.g + c2.g, b: c1.b + c2.b});
         }
-        @on test() {
+        @def test() {
             const rgb1 = make(Colour, {r:1, b: 2});
             const rgb2 = make(Colour, {r:0, g: 2});
             const rgb3 = add_colours(rgb1, rgb2);
@@ -120,7 +122,7 @@ Next, we add a feature to extend the `Colour` structure with an alpha property `
     @extend(Colour) class Alpha { a: number = 0.5; }
 
     @feature class _AlphaColour extends _Colour {
-        @on add_colours(c1: Colour, c2: Colour): Colour {
+        @replace add_colours(c1: Colour, c2: Colour): Colour {
             return { ... this.existing(add_colours)(c1, c2), a: c1.a + c2.a };
         }
     }
