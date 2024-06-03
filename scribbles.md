@@ -1,5 +1,232 @@
 # scribbles
 
+semantic change:
+
+    @def : define function for first time (error if already defined)
+    @replace : replace existing definition (error if not already defined)
+    @on : if void-returning, run new function alongside old one, finish when they both finish
+    @before : sequential before, with drop-through
+    @after : sequential after, with access to result
+
+we could do
+
+    @on : define if not already defined, replace if non-void-returning, parallel-aug if void-returning async.
+
+we have the mechanism to do def/replace/on properly.
+and it's early enough to make that change, so let's do that.
+
+
+---------------------
+
+Actually I think testing is the next "most important thing".
+Particularly, the connection of testing to features.
+Testing and logging are intimately connected. We need a proper next-gen solution.
+
+Idea of "concertina-log": when you're developing something new, you add "log" statements.
+These output to a line buffer, and print to console.log.
+When we're happy with things, we save the buffer as "reference;
+and then change all log(x) to silent_log(x).
+
+silent_log generates the console line, and checks it against the current line index
+(which monotonically increases). If we find it at >= that index, we "succeed" and continue;
+otherwise, we have an error, and we stop and issue a "test failed" error.
+
+I think we definitely also need to look at a "shared" logging system that does two things:
+1- allows recursion / detail hiding
+2- puts all interacting logs into the same (spreadsheet?) structure
+3- establishes a common ordering / clock system.
+
+Again, using feature-modular logging rather than console.log seems to be the right approach?
+
+    log(x);
+    log_silent(x);
+
+So we have two buffers:
+    the check-log (never changes; silent_log checks against)
+    the new-log (output from "log")
+
+Let's do it! Via fm, in shared.
+
+------------------------------------------------------------------------------
+Dig this bit of gpt output: how to establish a WebRTC connection
+
+Example Scenario:
+
+    Peer A and Peer B connect to the signaling server:
+
+    They use WebSockets to exchange signaling data.
+
+    Peer A creates an offer and sends it to Peer B via the signaling server.
+
+    Peer B receives the offer, creates an answer, and sends it back to Peer A.
+
+    Peers A and B exchange ICE candidates via the signaling server.
+
+    After the connection is established, the signaling server is no longer needed:
+
+    Peers communicate directly using the WebRTC data channel.
+
+How would this look in code?
+
+    on webrtc_connect(a: Device, b: Device, server: Device) {
+        connect([a, b], server);
+        create_offer(a, b, server);
+        receive_offer(a, b, server);
+        exchange_candidates(a, b, server);
+        webrtc_connected(a, b);
+    }
+
+    a.doSomething(...);
+    b.doSomething(...);
+
+=> that would be interesting, would it not... have to create that somehow.
+=> highly convenient notation, if each device is just an object with that interface.
+server.doSomething()    => is the same as. So yeah that would be super fucking cool.
+
+Right now the syntax is
+
+    remote(server, fn)(params)
+
+    on(server, fn)(params);
+
+
+
+------------------------------------------------------
+
+Monday: a good idea would be to look at storage.
+
+Let's build a vault with the following characteristics:
+
+- login using email, 4-digit-pin
+- load(file), save(file, data)
+- local cached version is used if it exists, otherwise reload
+- server updates us with new files via websocket
+
+We could do a bunch of things. We could look at user interaction...
+We could look at authentication and file serving.
+We could make offline mode work seamlessly with all of this.
+The lower down offline mode is built, the better it's going to work.
+
+Of all the lovely things we could build, what's the most exciting?
+not the vault, though that's exciting.
+it's the multi-point thing. Clearly, right?
+
+Simple demo: tap either the laptop or the phone screen to switch from blue to orange.
+Both laptop and phone switch to the same colour. I like this demo.
+
+Also, we draw the logo at the center of the screen. Come, let's do it.
+
+Some system of design that allows mobile and laptop to both work with the same codebase.
+I don't know, man, it's hard. But again, maybe it's super easy, because of features.
+
+
+
+So really, it's the `@shared` decorator. Loving it.
+And for that to work, we need websockets between things, and rpc via websocket.
+
+    remote(machine, func)(params)       -> not fucking bad.
+
+And we can use this pattern again, eg.
+
+    all(func)(params)                   -> run on everything
+
+    best(func)(params)                  -> run on best available
+
+Now see that's interesting: in actual fact, the `best` algorithm should be able to read the parameters of the function to decide where to run.
+
+    x = myFunc(y, z);                   -> x, y, z are shared vars
+
+We should go:
+
+    - which machines are x, y and z live on / available on
+    - if machines exist with all, rank by closest / fastest connection to
+
+
+OK: So that's the demo tomorrow:
+
+    - switch laptop and phone between blue / orange when you tap either screen
+
+Debug this system as a singular unit. That's the way: go immediately to difficult test case.
+
+"this happened" - drop the event into the pond.
+
+    user pressed button => flip colour
+    colour changed => redraw background
+
+    flip_background() => run on everything, everyone gets shared object.
+    we call deterministic functions on everything simultaneously.
+
+    so there's this shared property called "colour"
+    clients read it to change their background
+    and call flip when they click on their screen.
+
+    let's make that work tomorrow.
+
+
+
+
+
+___________________
+
+
+Some sort of brooding/looming insight into the nature of logging / testing newniceness.
+
+When you get to a happy place, you sort of want to pause and reflect.
+So it's just like: log stuff, keep a snapshot of the code and the log.
+And then make it disappear. In other words, all the console.log() calls up to now should disappear. All we should have back is the "running" thing.
+
+Under the hood, it's still logging, but it's logging to a silent "background" log.
+We compare this log to a snapshot of the log saved at the last happy place.
+Basically, we should find every line of this log in the snapshot, increasing monotonically.
+i.e. every line i should map to j in the source, where j increases.
+
+    console.log(blahblah);
+
+What if instead we have
+
+    log(blahblah) { console.log(blahblah); silent_log(blahblah); }
+
+    silent_log(blahblah) { add to lines; }
+
+each run: store a snapshot.
+
+
+
+
+___________________
+Good progress today:
+
+1- managed to get remote function calls working! I can define a function and call it on any Device (which is what I called a Server). This seems like a good first step. Currently only via fetch, but next step I guess would be websockets.
+
+What's nice is the discipline of building things by adding new features. Slowly starting to get the hang of it.
+
+Thoughts:
+
+- "on" semantics. Idea of "def" and "on" where "def" defines and "on" extends.
+- "replace" to override completely
+
+For void-returning functions, on x y should just run y in parallel with x;
+and we should return a promise that waits for both x and y.
+
+For T-returning functions, on x => R { ... } should run the new function, get the new result, and combine them in some way. So it should be:
+
+    @feature f1 
+        @on run() : number { return 1; }
+
+    @on feature f2
+        @on run() : number { max(newFn(), this.existing.run()); }
+        @on newFn() : number { return 2; }
+    }
+
+We just need the right notation.
+
+    @on fn() : number {
+        
+    }
+
+
+
+----------------------------------------------------------------------------------------
 
 OK. We're going to do the vault, but our order of development is:
 

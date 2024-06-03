@@ -426,7 +426,10 @@ export class FeatureManager {
         functionNames.set(fn, name);
     }
     listModuleScopeFunctions() {
-        console.log("Defined functions:", Object.keys(functionRegistry));
+        console.log("Defined functions:");
+        for (let name of Object.keys(functionRegistry)) {
+            console.log("   ", name);
+        }
     }
     clearModuleScopeFunctions() {
         for (let name of Object.keys(functionRegistry)) {

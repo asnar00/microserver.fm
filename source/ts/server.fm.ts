@@ -13,7 +13,7 @@ import * as shared from "./shared.fm.ts";
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @on async server() { console.log("ᕦ(ツ)ᕤ server"); shared.load(); }
+    @on async server() { console.log("ᕦ(ツ)ᕤ server"); shared.load_module(); }
 }
 
 //------------------------------------------------------------------------------
@@ -114,6 +114,18 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
         if (req.method === "PUT") {
             return callFunction(req);
         }
+    }
+}
+
+//------------------------------------------------------------------------------
+// ReadWrite reads and writes file to the local file system
+
+@feature class _ReadWrite extends shared._Files {
+    @on load(path: string): string {
+        return os.readFile(path);
+    }
+    @on save(path: string, content: string) {
+        os.writeFile(path, content);
     }
 }
 

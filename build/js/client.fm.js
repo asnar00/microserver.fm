@@ -28,11 +28,23 @@ addEventListener("load", () => { client(); });
 let _Client = class _Client extends _Feature {
     client() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log("ᕦ(ツ)ᕤ client");
+            log("ᕦ(ツ)ᕤ client");
             fm.readout();
             fm.listModuleScopeFunctions();
-            shared.load();
+            shared.load_module();
+            yield startup();
+            yield run();
+            yield shutdown();
         });
+    }
+    startup() {
+        return __awaiter(this, void 0, void 0, function* () { log("startup"); });
+    }
+    run() {
+        return __awaiter(this, void 0, void 0, function* () { log("run"); });
+    }
+    shutdown() {
+        return __awaiter(this, void 0, void 0, function* () { log("shutdown"); });
     }
 };
 _Client.server = make(Device, { url: "http://localhost", port: 8000 });
@@ -42,26 +54,58 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], _Client.prototype, "client", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Client.prototype, "startup", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Client.prototype, "run", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Client.prototype, "shutdown", null);
 _Client = __decorate([
     feature
 ], _Client);
 let _Offline = _Offline_1 = class _Offline extends _Client {
-    setup() {
+    startup() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log("_Offline.setup");
+            yield setupOffline();
+            yield check_online();
+        });
+    }
+    check_online() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let online = yield ping(_Offline_1.server);
+            _Offline_1.offline = !online;
+            if (online)
+                log("connected");
+            else
+                log("offline");
+        });
+    }
+    setupOffline() {
+        return __awaiter(this, void 0, void 0, function* () {
             if ('serviceWorker' in navigator) {
                 try {
                     let registration = yield navigator.serviceWorker.getRegistration();
                     if (registration) {
-                        console.log('  already registered with scope:', registration.scope);
                     }
                     else {
                         yield navigator.serviceWorker.register('/service-worker.js');
                         registration = yield navigator.serviceWorker.getRegistration();
-                        if (registration)
-                            console.log('  registration successful with scope:', registration.scope);
+                        if (registration) {
+                        }
                         else {
-                            console.log('  registration failed.');
+                            log('offline mode unavailable: registration failed.');
                             return;
                         }
                     }
@@ -70,10 +114,10 @@ let _Offline = _Offline_1 = class _Offline extends _Client {
                         installingWorker.onstatechange = () => {
                             if (installingWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
-                                    console.log('New or updated service worker is installed.');
+                                    log('New or updated service worker is installed.');
                                 }
                                 else {
-                                    console.log('Service worker is installed for the first time.');
+                                    log('Service worker is installed for the first time.');
                                 }
                             }
                         };
@@ -81,55 +125,34 @@ let _Offline = _Offline_1 = class _Offline extends _Client {
                     registration.update();
                 }
                 catch (err) {
-                    console.log('  registration failed:', err);
+                    log('offline mode unavailable:', err);
                 }
             }
             else {
-                console.log('  Service workers are not supported! Offline mode disabled.');
+                log('offline mode unavailable: service workers not supported');
             }
-        });
-    }
-    client() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield setup();
-            let online = yield ping(_Offline_1.server);
-            _Offline_1.offline = !online;
-            if (online)
-                console.log("  connected");
-            else
-                console.log("  offline");
         });
     }
 };
 _Offline.offline = false;
 __decorate([
+    after,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Offline.prototype, "startup", null);
+__decorate([
     on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], _Offline.prototype, "setup", null);
+], _Offline.prototype, "check_online", null);
 __decorate([
-    after,
+    on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], _Offline.prototype, "client", null);
+], _Offline.prototype, "setupOffline", null);
 _Offline = _Offline_1 = __decorate([
     feature
 ], _Offline);
-//-----------------------------------------------------------------------------
-// Run
-let _Run = class _Run extends _Client {
-    client() {
-        return __awaiter(this, void 0, void 0, function* () { run(); });
-    }
-};
-__decorate([
-    after,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], _Run.prototype, "client", null);
-_Run = __decorate([
-    feature
-], _Run);

@@ -8,7 +8,7 @@ import { _Feature, feature, on, after, before, struct, make, fm}  from "./fm.js"
 //-----------------------------------------------------------------------------
 // Run
 
-export const load = () => { console.log("loaded shared module"); };
+export const load_module = () => { log("loaded shared module"); };
 
 //-----------------------------------------------------------------------------
 // Do Something
@@ -16,7 +16,7 @@ export const load = () => { console.log("loaded shared module"); };
 export declare const run: () => void;
 
 @feature class _Shared extends _Feature {
-     @on async run() { console.log("shared run"); }
+     @on async run() { log("shared run"); }
 }
 
 //-----------------------------------------------------------------------------
@@ -88,13 +88,51 @@ declare const greet: (name: string) => string;
 @feature class _Greet extends _Shared{
     @on greet(name: string): string {
         let result = `hello, ${name}!`;
-        console.log(result);
+        log(result);
         return result;
     }
     @after async run() {
         const server = make(Device, { url: "http://localhost", port: 8000 });
         greet("asnaroo");
         const msg = await remote(server, greet)("asnaroo");
-        console.log("server:", msg);
+        log("server:", msg);
     }
+}
+
+//------------------------------------------------------------------------------
+// Files adds "load" and "save" stubs
+
+declare const load : (filename: string) => string;
+declare const save : (filename: string, text: string) => void;
+
+@feature export class _Files extends _Feature {
+    @on load(filename: string): string { log("not implemented"); return ""; }
+    @on save(filename: string, text: string) { log("not implemented"); }
+}
+
+//------------------------------------------------------------------------------
+// Logging adds "log" and "silent_log";
+
+declare const log: (...args: any[]) => void;
+declare const stringify: (arg: any) => string;
+
+@feature class _Logging extends _Feature {
+    static lines: string[] = [];
+    @on log(...args: any[]) {
+        let message =  args.map(arg => stringify(arg)).join(' ');
+        _Logging.lines.push(message);
+        console.log(message);
+    }
+    @on stringify(arg: any) {
+        if (typeof arg === 'object') {
+            try {
+                return JSON.stringify(arg, null, 2);
+            } catch (error) {
+                console.log(error);
+                return "ack! error stringifying object";
+            }
+        } else {
+            return String(arg);
+        }
+    }   
 }

@@ -12,82 +12,84 @@ addEventListener("load", () => { client(); });
 // -----------------------------------------------------------------------------
 // declarations from shared module. todo: find a way to automate this. later.
 
-declare const run: () => void;
+declare const log: (...args: any[]) => void;
 declare const ping: (device: Device) => Promise<boolean>;
 
 //-----------------------------------------------------------------------------
 // _Client runs on the browser
 
 declare const client: () => Promise<void>;
+declare const startup : () => Promise<void>;
+declare const run : () => Promise<void>;
+declare const shutdown : () => Promise<void>;
 
 @feature class _Client extends _Feature {
     static server = make(Device, { url: "http://localhost", port: 8000 });
     @on async client() { 
-        console.log("ᕦ(ツ)ᕤ client"); 
+        log("ᕦ(ツ)ᕤ client"); 
         fm.readout();
         fm.listModuleScopeFunctions();
-        shared.load();
+        shared.load_module();
+        await startup();
+        await run();
+        await shutdown();
     }
+    @on async startup() : Promise<void> { log("startup"); }
+    @on async run() : Promise<void> { log("run"); }
+    @on async shutdown() : Promise<void> { log("shutdown"); }
 }
 
 //-----------------------------------------------------------------------------
 // _Offline ensures that website can load when offline
 
-declare const setup: () => void;
+declare const setupOffline: () => void;
+declare const check_online: () => void;
 
 @feature class _Offline extends _Client {
     static offline: boolean = false;
-    @on async setup() {
-        console.log("_Offline.setup");
+    @after async startup() { 
+        await setupOffline(); 
+        await check_online();
+    }
+    @on async check_online() {
+        let online = await ping(_Offline.server);
+        _Offline.offline = !online;
+        if (online) log("connected"); else log("offline");
+    }
+    @on async setupOffline() {
         if ('serviceWorker' in navigator) {
             try {
                 let registration = await navigator.serviceWorker.getRegistration();
                 if (registration) {
-                    console.log('  already registered with scope:', registration.scope);
                 }
                 else {
                     await navigator.serviceWorker.register('/service-worker.js');
                     registration = await navigator.serviceWorker.getRegistration();
-                    if (registration)
-                        console.log('  registration successful with scope:', registration.scope);
+                    if (registration) {
+                    }
                     else {
-                        console.log('  registration failed.');
+                        log('offline mode unavailable: registration failed.');
                         return;
                     }
                 }
-
                 registration!.onupdatefound = () => {
                     const installingWorker = registration!.installing;
                     installingWorker!.onstatechange = () => {
                         if (installingWorker!.state === 'installed') {
-                        if (navigator.serviceWorker.controller) {
-                            console.log('New or updated service worker is installed.');
-                        } else {
-                            console.log('Service worker is installed for the first time.');
-                        }
+                            if (navigator.serviceWorker.controller) {
+                                log('New or updated service worker is installed.');
+                            } else {
+                                log('Service worker is installed for the first time.');
+                            }
                         }
                     };
                 };
                 registration!.update();
             } catch (err) {
-                console.log('  registration failed:', err);
+                log('offline mode unavailable:', err);
             }
           } else {
-            console.log('  Service workers are not supported! Offline mode disabled.');
+            log('offline mode unavailable: service workers not supported');
         }
     }
-
-    @after async client() { 
-        await setup(); 
-        let online = await ping(_Offline.server);
-        _Offline.offline = !online;
-        if (online) console.log("  connected"); else console.log("  offline");
-    }
-}
-
-//-----------------------------------------------------------------------------
-// Run
-
-@feature class _Run extends _Client {
-    @after async client() { run(); }
 }

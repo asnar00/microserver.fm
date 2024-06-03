@@ -17,3 +17,12 @@ export async function serveFile(req: Request, path: string) : Promise<Response> 
 export function cwd() {
     return Deno.cwd();
 }
+
+export function readFile(path: string): string {
+    return deno_file.readTextFileSync(path);
+}
+
+export function writeFile(path: string, content: string) {
+    deno_file.ensureDirSync(path);
+    deno_file.writeTextFileSync(path);
+}

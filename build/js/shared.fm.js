@@ -20,13 +20,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var _Logging_1;
 import { _Feature, feature, on, after, struct, make, fm } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Run
-export const load = () => { console.log("loaded shared module"); };
+export const load_module = () => { log("loaded shared module"); };
 let _Shared = class _Shared extends _Feature {
     run() {
-        return __awaiter(this, void 0, void 0, function* () { console.log("shared run"); });
+        return __awaiter(this, void 0, void 0, function* () { log("shared run"); });
     }
 };
 __decorate([
@@ -136,7 +137,7 @@ _Device = __decorate([
 let _Greet = class _Greet extends _Shared {
     greet(name) {
         let result = `hello, ${name}!`;
-        console.log(result);
+        log(result);
         return result;
     }
     run() {
@@ -144,7 +145,7 @@ let _Greet = class _Greet extends _Shared {
             const server = make(Device, { url: "http://localhost", port: 8000 });
             greet("asnaroo");
             const msg = yield remote(server, greet)("asnaroo");
-            console.log("server:", msg);
+            log("server:", msg);
         });
     }
 };
@@ -163,3 +164,60 @@ __decorate([
 _Greet = __decorate([
     feature
 ], _Greet);
+let _Files = class _Files extends _Feature {
+    load(filename) { log("not implemented"); return ""; }
+    save(filename, text) { log("not implemented"); }
+};
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", String)
+], _Files.prototype, "load", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], _Files.prototype, "save", null);
+_Files = __decorate([
+    feature
+], _Files);
+export { _Files };
+let _Logging = _Logging_1 = class _Logging extends _Feature {
+    log(...args) {
+        let message = args.map(arg => stringify(arg)).join(' ');
+        _Logging_1.lines.push(message);
+        console.log(message);
+    }
+    stringify(arg) {
+        if (typeof arg === 'object') {
+            try {
+                return JSON.stringify(arg, null, 2);
+            }
+            catch (error) {
+                console.log(error);
+                return "ack! error stringifying object";
+            }
+        }
+        else {
+            return String(arg);
+        }
+    }
+};
+_Logging.lines = [];
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log", null);
+__decorate([
+    on,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "stringify", null);
+_Logging = _Logging_1 = __decorate([
+    feature
+], _Logging);
