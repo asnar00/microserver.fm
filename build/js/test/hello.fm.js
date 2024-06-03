@@ -10,7 +10,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { _Feature, feature, on, after, before, fm, console_separator } from "../fm.js";
+import { _Feature, feature, on, after, before, fm } from "../fm.js";
 let _Main = class _Main extends _Feature {
     main() { console.log("ᕦ(ツ)ᕤ"); }
 };
@@ -80,9 +80,7 @@ __decorate([
 _Countdown = __decorate([
     feature
 ], _Countdown);
-console_separator();
 //fm.disable(["_Hello", "_Countdown"]);
 fm.readout();
 fm.debug(true);
-console_separator();
 main();

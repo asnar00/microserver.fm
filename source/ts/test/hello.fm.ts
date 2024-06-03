@@ -2,7 +2,7 @@
 // hello.fm.ts
 // feature modular hello world
 
-import { _Feature, feature, on, after, before, fm, console_separator} from "../fm.js";
+import { _Feature, feature, on, after, before, fm } from "../fm.js";
 
 //-----------------------------------------------------------------------------
 // Main
@@ -43,9 +43,7 @@ declare const countdown: () => void;
     @before main() { countdown(); }
 }
 
-console_separator();
 //fm.disable(["_Hello", "_Countdown"]);
 fm.readout();
 fm.debug(true);
-console_separator();
 main();

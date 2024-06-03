@@ -11,6 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import { log, log_group, log_end_group } from './util/logging.js';
 //------------------------------------------------------------------------------
 // logging
 let _indent = ""; // start of each console for indenting
@@ -300,7 +301,7 @@ export class FeatureManager {
             mf = MetaFeature._byname["_Feature"];
         }
         if (!mf.isEnabled()) {
-            console.log('disabled');
+            log('disabled');
             return;
         }
         console.groupCollapsed(mf.name);
@@ -311,7 +312,7 @@ export class FeatureManager {
                 feature.test();
             }
             else {
-                console.log("no test");
+                log("no test");
             }
         }
         for (let c of mf.children) {
@@ -334,18 +335,17 @@ export class FeatureManager {
     readout(mf = null) {
         if (!mf) {
             mf = MetaFeature._byname["_Feature"];
-            console.log("Defined features:");
+            log("Defined features:");
         }
         if (mf.isEnabled()) {
-            console.log(mf.name);
-            console_indent();
+            log_group(mf.name);
             for (let c of mf.children) {
                 this.readout(c);
             }
-            console_undent();
+            log_end_group();
         }
         else {
-            console.log(console_grey(mf.name));
+            log(`${mf.name} disabled`);
         }
     }
     debug(onOff) {
@@ -513,9 +513,9 @@ export class FeatureManager {
         functionNames.set(fn, name);
     }
     listModuleScopeFunctions() {
-        console.log("Defined functions:");
+        log("Defined functions:");
         for (let name of Object.keys(functionRegistry)) {
-            console.log("   ", name);
+            log("   ", name);
         }
     }
     clearModuleScopeFunctions() {

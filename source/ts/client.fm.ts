@@ -4,7 +4,7 @@
 // author: asnaroo
 
 import { log, log_group, log_end_group} from './util/logging.js';
-import { _Feature, feature, def, replace, on, after, before, make, fm, console_separator }  from "./fm.js";
+import { _Feature, feature, def, replace, on, after, before, make, fm, }  from "./fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
 import { Device } from './shared.fm.js';

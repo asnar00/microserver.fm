@@ -3,6 +3,7 @@
 // author: asnaroo
 // feature-modular typescript
 
+import { log, log_group, log_end_group} from './util/logging.js';
 //------------------------------------------------------------------------------
 // logging
 
@@ -333,7 +334,7 @@ export class FeatureManager {
             mf = MetaFeature._byname["_Feature"];
         }
         if (!mf.isEnabled()) {
-            console.log('disabled');
+            log('disabled');
             return;
         }
         console.groupCollapsed(mf.name);
@@ -343,7 +344,7 @@ export class FeatureManager {
             if (hasTest) {
                 feature.test();
             } else {
-                console.log("no test");
+                log("no test");
             }
         }
         for(let c of mf.children) {
@@ -366,17 +367,16 @@ export class FeatureManager {
     readout(mf: MetaFeature|null=null) {
         if (!mf) {  
             mf = MetaFeature._byname["_Feature"]; 
-            console.log("Defined features:");
+            log("Defined features:");
         }
         if (mf.isEnabled()) {
-            console.log(mf.name);
-            console_indent();
+            log_group(mf.name);
             for (let c of mf.children) {
                 this.readout(c);
             }
-            console_undent();
+            log_end_group();
         } else {
-            console.log(console_grey(mf.name));
+            log(`${mf.name} disabled`);
         }
     }
 
@@ -514,9 +514,9 @@ export class FeatureManager {
     }
 
     listModuleScopeFunctions() {
-        console.log("Defined functions:");
+        log("Defined functions:");
         for(let name of Object.keys(functionRegistry)) {
-            console.log("   ", name);
+            log("   ", name);
         }
     }
 

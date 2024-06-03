@@ -22,7 +22,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _Offline_1;
 import { log, log_group, log_end_group } from './util/logging.js';
-import { _Feature, feature, def, on, after, make } from "./fm.js";
+import { _Feature, feature, def, on, after, make, } from "./fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
 import { Device } from './shared.fm.js';

@@ -2,7 +2,7 @@
 // colours.fm.ts
 // feature modular struct extension
 
-import { _Feature, feature, on, after, before, struct, extend, make, fm, console_separator} from "../fm.js";
+import { _Feature, feature, on, after, before, struct, extend, make, fm } from "../fm.js";
 
 // -----------------------------------------------------------------------------
 

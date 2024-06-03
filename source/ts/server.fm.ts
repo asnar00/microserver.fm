@@ -3,8 +3,9 @@
 // feature-modular server
 // author: asnaroo
 
+import { log, log_group, log_end_group} from './util/logging.js';
 import * as os from "./util/os.ts";
-import { _Feature, feature, def, replace, on, after, before, fm, console_separator } from "./fm.ts";
+import { _Feature, feature, def, replace, on, after, before, fm } from "./fm.ts";
 import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
@@ -13,7 +14,7 @@ import * as shared from "./shared.fm.ts";
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @def async server() { console.log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
+    @def async server() { log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
 }
 
 //------------------------------------------------------------------------------
@@ -26,14 +27,14 @@ declare const start_server: () => Promise<void>;
 
 @feature class _Server extends _Main {
     @def async not_found() : Promise<Response> {
-        console.log("not_found!");
+        log("not_found!");
         return new Response("Not found", { status: 404 });
     }
     @def async handle(req: Request): Promise<Response|undefined> {
         return not_found();
     }
     @def async receive_request(req: Request): Promise<Response|undefined> {
-        console.log(req.method, req.url);
+        log(req.method, req.url);
         return handle(req);
     }
     @def async start_server() {
@@ -66,7 +67,7 @@ declare const serve_file: (req: Request) => Promise<Response|undefined>;
     @def async serve_file(req: Request): Promise<Response|undefined> {
         let path = translate_path(req.url);
         if (path) {
-            console.log(path.replace(_Get.rootFolder, ""));
+            log(path.replace(_Get.rootFolder, ""));
             return await os.serve_file(req, path); 
         }
     }
@@ -102,7 +103,7 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
         let params = await req.json();
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
-            console.log("calling:", functionName, "with", params);
+            log("calling:", functionName, "with", params);
             let result : any = func(...Object.values(params));
             if (result instanceof Promise) { result = await result; }
             return new Response(JSON.stringify(result), { status: 200 });
@@ -129,10 +130,8 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
     }
 }
 
-console_separator();
 fm.readout();
 fm.listModuleScopeFunctions();
 fm.debug(true);
-console_separator();
 
 server();
