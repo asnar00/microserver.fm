@@ -127,6 +127,7 @@ class MetaFunction {
     method: Function;           // function (...args: any[]): any
     decorator: string;          // on, after, before
     isAsync: boolean;           // true if the function is async
+    returnsValue: boolean;      // true if we return something other than void
     params: string[] = [];      // parameter names  
 
     static _byName: { [name: string]: MetaFunction } = {};
@@ -135,6 +136,7 @@ class MetaFunction {
         this.method = method;
         this.decorator = decorator;
         this.isAsync = isAsyncFunction(method);
+        this.returnsValue = returnsValue(method);
         this.params = listParams(method);
         MetaFunction._byName[name] = this; 
     }
@@ -165,6 +167,22 @@ export function feature<T extends { new (...args: any[]): {} }>(constructor: T) 
     const instance = new constructor();
     mf.initialise(superClassName, instance as _Feature);
     fm.buildFeature(mf);
+}
+
+// @def decorator handler
+export function def(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "def"));
+}
+
+// @replace decorator handler
+export function replace(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "replace"));
 }
 
 // @on decorator handler
@@ -262,7 +280,8 @@ const functionNames = new Map<Function, string>();
 const handler: ProxyHandler<typeof globalThis> = {
     set(target, property, value) {
         if (typeof value === 'function') {
-            functionRegistry[property as string] = value;
+            const name = property as string;
+            functionRegistry[name] = value;
             functionNames.set(value, property as string);
         }
         return Reflect.set(target, property, value);
@@ -280,6 +299,21 @@ function isAsyncFunction(fn: Function): fn is AsyncFunction {
     return (fnString.startsWith("async") || fnString.includes("__awaiter")); // works in deno or js
 }
 
+// returns true if the function returns a non-void value
+function returnsValue(func: Function): boolean {
+    const functionText = func.toString();
+    const returnRegex = /return\s+([^;]*)/g;
+    let match;
+    while ((match = returnRegex.exec(functionText)) !== null) {
+        const returnValue = match[1].trim();
+        if (returnValue && !returnValue.startsWith("__awaiter")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// list the parameter names for (func)
 function listParams(func: Function): string[] {
     const funcStr = func.toString();
     const paramStr = funcStr.match(/\(([^)]*)\)/)![1];
@@ -366,20 +400,43 @@ export class FeatureManager {
     }
 
     buildFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
-        if (mfn.decorator == "on") { return this.buildOnFunction(mf, mfn); }
+        if (mfn.decorator == "def") { return this.buildDefFunction(mf, mfn); }
+        else if (mfn.decorator == "replace") { return this.buildReplaceFunction(mf, mfn); }
+        else if (mfn.decorator == "on") { return this.buildOnFunction(mf, mfn); }
         else if (mfn.decorator == "after") { return this.buildAfterFunction(mf, mfn); }
         else if (mfn.decorator == "before") { return this.buildBeforeFunction(mf, mfn); }
         else { throw new Error(`unknown decorator ${mfn.decorator}`); }
     }
 
-    buildOnFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+    buildDefFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        const originalFunction = functionRegistry[mfn.name];
+        if (originalFunction) {  
+            throw new Error(`${mf.name}.def: ${mfn.name} already exists`); 
+        }
         const boundMethod = mfn.method.bind(mf.instance);
         return boundMethod;
     }
 
+    buildReplaceFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) { throw new Error(`${mf.name}.replace: ${mfn.name} not found`); }
+        const boundMethod = mfn.method.bind(mf.instance);
+        return boundMethod;
+    }
+
+    buildOnFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
+        const boundMethod = mfn.method.bind(mf.instance);
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) return boundMethod;
+        if (!mfn.isAsync) { throw new Error(`${mf.name}.on: ${mfn.name} must be async`); }
+        return async function(...args: any[]) {
+            return Promise.all([originalFunction(...args), boundMethod(...args)]);
+        };
+    }
+
     buildAfterFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
-        if (!originalFunction) { throw new Error(`function ${mfn.name} not found`); }
+        if (!originalFunction) { throw new Error(`${mf.name}.after: ${mfn.name} not found`); }
         if (mfn.isAsync) {
             const newFunction = async function (...args: any[]) {
                 let _result = await originalFunction(...args);
@@ -387,7 +444,7 @@ export class FeatureManager {
             };
             return newFunction;
         } else {
-            if (!mfn.isAsync) { throw new Error(`@after: ${mfn.name} must be async`); }
+            if (!mfn.isAsync) { throw new Error(`${mf.name}.after: ${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 let _result = originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
@@ -398,7 +455,7 @@ export class FeatureManager {
 
     buildBeforeFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
-        if (!originalFunction) { throw new Error(`function ${mfn.name} not found`); }
+        if (!originalFunction) { throw new Error(`${mf.name}.before: ${mfn.name} not found`); }
         if (mfn.isAsync) {
             const newFunction =  async function (...args: any[]) {
                 const newResult = await mfn.method.apply(mf.instance, args);
@@ -407,7 +464,7 @@ export class FeatureManager {
             };
             return newFunction;
         } else {
-            if (!mfn.isAsync) { throw new Error(`@before: ${mfn.name} must be async`); }
+            if (!mfn.isAsync) { throw new Error(`${mf.name}.before: ${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 const newResult = mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }
@@ -443,6 +500,7 @@ export class FeatureManager {
             const fn = (proxiedGlobalThis as any)[name];
             delete (proxiedGlobalThis as any)[name];
             functionNames.delete(fn);
+            delete functionRegistry[name];
         }
     }
 

@@ -1,5 +1,5 @@
 {
-  "exclude" : [ "server.fm.ts", "os.ts" ],
+  "exclude" : [ "server.fm.ts", "util/os.ts" ],
   "compilerOptions": {
     /* Basic Options */
     "incremental": true,                      /* Enable incremental compilation */

@@ -129,6 +129,7 @@ class MetaFunction {
         this.method = method;
         this.decorator = decorator;
         this.isAsync = isAsyncFunction(method);
+        this.returnsValue = returnsValue(method);
         this.params = listParams(method);
         MetaFunction._byName[name] = this;
     }
@@ -157,6 +158,20 @@ export function feature(constructor) {
     const instance = new constructor();
     mf.initialise(superClassName, instance);
     fm.buildFeature(mf);
+}
+// @def decorator handler
+export function def(target, propertyKey, descriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "def"));
+}
+// @replace decorator handler
+export function replace(target, propertyKey, descriptor) {
+    const method = descriptor.value;
+    const className = target.constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    mf.addFunction(new MetaFunction(propertyKey, method, "replace"));
 }
 // @on decorator handler
 export function on(target, propertyKey, descriptor) {
@@ -240,7 +255,8 @@ const functionNames = new Map();
 const handler = {
     set(target, property, value) {
         if (typeof value === 'function') {
-            functionRegistry[property] = value;
+            const name = property;
+            functionRegistry[name] = value;
             functionNames.set(value, property);
         }
         return Reflect.set(target, property, value);
@@ -252,6 +268,20 @@ function isAsyncFunction(fn) {
     let fnString = fn.toString().trim();
     return (fnString.startsWith("async") || fnString.includes("__awaiter")); // works in deno or js
 }
+// returns true if the function returns a non-void value
+function returnsValue(func) {
+    const functionText = func.toString();
+    const returnRegex = /return\s+([^;]*)/g;
+    let match;
+    while ((match = returnRegex.exec(functionText)) !== null) {
+        const returnValue = match[1].trim();
+        if (returnValue && !returnValue.startsWith("__awaiter")) {
+            return true;
+        }
+    }
+    return false;
+}
+// list the parameter names for (func)
 function listParams(func) {
     const funcStr = func.toString();
     const paramStr = funcStr.match(/\(([^)]*)\)/)[1];
@@ -339,7 +369,13 @@ export class FeatureManager {
         }
     }
     buildFunction(mf, mfn) {
-        if (mfn.decorator == "on") {
+        if (mfn.decorator == "def") {
+            return this.buildDefFunction(mf, mfn);
+        }
+        else if (mfn.decorator == "replace") {
+            return this.buildReplaceFunction(mf, mfn);
+        }
+        else if (mfn.decorator == "on") {
             return this.buildOnFunction(mf, mfn);
         }
         else if (mfn.decorator == "after") {
@@ -352,14 +388,40 @@ export class FeatureManager {
             throw new Error(`unknown decorator ${mfn.decorator}`);
         }
     }
-    buildOnFunction(mf, mfn) {
+    buildDefFunction(mf, mfn) {
+        const originalFunction = functionRegistry[mfn.name];
+        if (originalFunction) {
+            throw new Error(`${mf.name}.def: ${mfn.name} already exists`);
+        }
         const boundMethod = mfn.method.bind(mf.instance);
         return boundMethod;
+    }
+    buildReplaceFunction(mf, mfn) {
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction) {
+            throw new Error(`${mf.name}.replace: ${mfn.name} not found`);
+        }
+        const boundMethod = mfn.method.bind(mf.instance);
+        return boundMethod;
+    }
+    buildOnFunction(mf, mfn) {
+        const boundMethod = mfn.method.bind(mf.instance);
+        const originalFunction = functionRegistry[mfn.name];
+        if (!originalFunction)
+            return boundMethod;
+        if (!mfn.isAsync) {
+            throw new Error(`${mf.name}.on: ${mfn.name} must be async`);
+        }
+        return function (...args) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return Promise.all([originalFunction(...args), boundMethod(...args)]);
+            });
+        };
     }
     buildAfterFunction(mf, mfn) {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) {
-            throw new Error(`function ${mfn.name} not found`);
+            throw new Error(`${mf.name}.after: ${mfn.name} not found`);
         }
         if (mfn.isAsync) {
             const newFunction = function (...args) {
@@ -372,7 +434,7 @@ export class FeatureManager {
         }
         else {
             if (!mfn.isAsync) {
-                throw new Error(`@after: ${mfn.name} must be async`);
+                throw new Error(`${mf.name}.after: ${mfn.name} must be async`);
             }
             const newFunction = function (...args) {
                 let _result = originalFunction(...args);
@@ -384,7 +446,7 @@ export class FeatureManager {
     buildBeforeFunction(mf, mfn) {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) {
-            throw new Error(`function ${mfn.name} not found`);
+            throw new Error(`${mf.name}.before: ${mfn.name} not found`);
         }
         if (mfn.isAsync) {
             const newFunction = function (...args) {
@@ -400,7 +462,7 @@ export class FeatureManager {
         }
         else {
             if (!mfn.isAsync) {
-                throw new Error(`@before: ${mfn.name} must be async`);
+                throw new Error(`${mf.name}.before: ${mfn.name} must be async`);
             }
             const newFunction = function (...args) {
                 const newResult = mfn.method.apply(mf.instance, args);
@@ -436,6 +498,7 @@ export class FeatureManager {
             const fn = proxiedGlobalThis[name];
             delete proxiedGlobalThis[name];
             functionNames.delete(fn);
+            delete functionRegistry[name];
         }
     }
     getModuleScopeFunction(name) {

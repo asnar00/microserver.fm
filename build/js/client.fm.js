@@ -21,35 +21,42 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var _Offline_1;
-import { _Feature, feature, on, after, make, fm } from "./fm.js";
+import { _Feature, feature, def, on, after, make } from "./fm.js";
 import * as shared from './shared.fm.js';
+import * as browser from './util/browser.js';
 import { Device } from './shared.fm.js';
 addEventListener("load", () => { client(); });
+class TreeLog {
+    constructor(line) {
+        this.line = "";
+        this.subLogs = [];
+        this.line = line;
+    }
+}
 let _Client = class _Client extends _Feature {
     client() {
         return __awaiter(this, void 0, void 0, function* () {
             log("ᕦ(ツ)ᕤ client");
-            fm.readout();
-            fm.listModuleScopeFunctions();
             shared.load_module();
             yield startup();
             yield run();
             yield shutdown();
+            console.log("done.");
         });
     }
     startup() {
-        return __awaiter(this, void 0, void 0, function* () { log("startup"); });
-    }
-    run() {
-        return __awaiter(this, void 0, void 0, function* () { log("run"); });
+        return __awaiter(this, void 0, void 0, function* () {
+            let tl = new TreeLog("test log");
+            console.log(tl);
+        });
     }
     shutdown() {
-        return __awaiter(this, void 0, void 0, function* () { log("shutdown"); });
+        return __awaiter(this, void 0, void 0, function* () { });
     }
 };
 _Client.server = make(Device, { url: "http://localhost", port: 8000 });
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -61,13 +68,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], _Client.prototype, "startup", null);
 __decorate([
-    on,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], _Client.prototype, "run", null);
-__decorate([
-    on,
+    after,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -78,8 +79,7 @@ _Client = __decorate([
 let _Offline = _Offline_1 = class _Offline extends _Client {
     startup() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield setupOffline();
-            yield check_online();
+            return setup_offline();
         });
     }
     check_online() {
@@ -92,67 +92,37 @@ let _Offline = _Offline_1 = class _Offline extends _Client {
                 log("offline");
         });
     }
-    setupOffline() {
+    setup_offline() {
         return __awaiter(this, void 0, void 0, function* () {
-            if ('serviceWorker' in navigator) {
-                try {
-                    let registration = yield navigator.serviceWorker.getRegistration();
-                    if (registration) {
-                    }
-                    else {
-                        yield navigator.serviceWorker.register('/service-worker.js');
-                        registration = yield navigator.serviceWorker.getRegistration();
-                        if (registration) {
-                        }
-                        else {
-                            log('offline mode unavailable: registration failed.');
-                            return;
-                        }
-                    }
-                    registration.onupdatefound = () => {
-                        const installingWorker = registration.installing;
-                        installingWorker.onstatechange = () => {
-                            if (installingWorker.state === 'installed') {
-                                if (navigator.serviceWorker.controller) {
-                                    log('New or updated service worker is installed.');
-                                }
-                                else {
-                                    log('Service worker is installed for the first time.');
-                                }
-                            }
-                        };
-                    };
-                    registration.update();
-                }
-                catch (err) {
-                    log('offline mode unavailable:', err);
-                }
+            let msg = yield browser.setupServiceWorker();
+            if (msg == "success") {
+                return check_online();
             }
             else {
-                log('offline mode unavailable: service workers not supported');
+                console.log(msg);
             }
         });
     }
 };
 _Offline.offline = false;
 __decorate([
-    after,
+    on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], _Offline.prototype, "startup", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], _Offline.prototype, "check_online", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], _Offline.prototype, "setupOffline", null);
+], _Offline.prototype, "setup_offline", null);
 _Offline = _Offline_1 = __decorate([
     feature
 ], _Offline);

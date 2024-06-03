@@ -21,21 +21,39 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var _Logging_1;
-import { _Feature, feature, on, after, struct, make, fm } from "./fm.js";
+import { _Feature, feature, def, after, struct, make, fm } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Run
-export const load_module = () => { log("loaded shared module"); };
+export const load_module = () => { };
 let _Shared = class _Shared extends _Feature {
+    startup() {
+        return __awaiter(this, void 0, void 0, function* () { });
+    }
     run() {
-        return __awaiter(this, void 0, void 0, function* () { log("shared run"); });
+        return __awaiter(this, void 0, void 0, function* () { });
+    }
+    shutdown() {
+        return __awaiter(this, void 0, void 0, function* () { });
     }
 };
 __decorate([
-    on,
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Shared.prototype, "startup", null);
+__decorate([
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], _Shared.prototype, "run", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], _Shared.prototype, "shutdown", null);
 _Shared = __decorate([
     feature
 ], _Shared);
@@ -108,25 +126,25 @@ let _Device = class _Device extends _Feature {
     }
 };
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Boolean)
 ], _Device.prototype, "stub", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device]),
     __metadata("design:returntype", Promise)
 ], _Device.prototype, "ping", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device, Function]),
     __metadata("design:returntype", void 0)
 ], _Device.prototype, "remote", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Device, String, Object]),
     __metadata("design:returntype", Promise)
@@ -150,7 +168,7 @@ let _Greet = class _Greet extends _Shared {
     }
 };
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", String)
@@ -169,13 +187,13 @@ let _Files = class _Files extends _Feature {
     save(filename, text) { log("not implemented"); }
 };
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", String)
 ], _Files.prototype, "load", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
@@ -207,16 +225,16 @@ let _Logging = _Logging_1 = class _Logging extends _Feature {
 };
 _Logging.lines = [];
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], _Logging.prototype, "log", null);
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", String)
 ], _Logging.prototype, "stringify", null);
 _Logging = _Logging_1 = __decorate([
     feature

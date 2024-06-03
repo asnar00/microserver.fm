@@ -3,20 +3,24 @@
 // feature-modular experiments
 // author: asnaroo
 
-import { _Feature, feature, on, after, before, struct, make, fm}  from "./fm.js";
+import { _Feature, feature, def, replace, on, after, before, struct, make, fm}  from "./fm.js";
 
 //-----------------------------------------------------------------------------
 // Run
 
-export const load_module = () => { log("loaded shared module"); };
+export const load_module = () => {};
 
 //-----------------------------------------------------------------------------
-// Do Something
+// _Shared introduces three stub functions: startup, run, and shutdown
 
+export declare const startup: () => void;
 export declare const run: () => void;
+export declare const shutdown: () => void;
 
 @feature class _Shared extends _Feature {
-     @on async run() { log("shared run"); }
+    @def async startup() {}
+    @def async run() {}
+    @def async shutdown() {}
 }
 
 //-----------------------------------------------------------------------------
@@ -26,9 +30,9 @@ export declare const run: () => void;
 
 @struct export class Device { url: string = ""; port: number = 0; }
 
+export declare const stub: () => boolean;
 export declare const ping: (d: Device) => Promise<boolean>;
 export declare const remote: (d: Device, targetFunction: Function) => Function;
-export declare const stub: () => boolean;
 
 declare const rpc: (d: Device, functionName: string, params: any) => Promise<any>;
 
@@ -41,15 +45,15 @@ function paramList(func: Function) {
 }
 
 @feature class _Device extends _Feature {
-    @on stub() : boolean { return true; }
-    @on async ping(d: Device) : Promise<boolean> {
+    @def stub() : boolean { return true; }
+    @def async ping(d: Device) : Promise<boolean> {
         try {
             return remote(d, stub)();
         } catch(e) {
             return false; 
         }
     }
-    @on remote(d: Device, targetFunction: Function) {
+    @def remote(d: Device, targetFunction: Function) {
         let functionName = targetFunction.name;
         if (functionName.startsWith("bound ")) { functionName = functionName.slice(6); }
         const paramNames = fm.getFunctionParams(functionName);
@@ -63,7 +67,7 @@ function paramList(func: Function) {
             }
         });
     };
-    @on async rpc(d: Device, functionName: string, params: any) {
+    @def async rpc(d: Device, functionName: string, params: any) {
         const response = await fetch(`${d.url}:${d.port}/${functionName}`, {
             method: 'PUT',
             headers: {
@@ -86,7 +90,7 @@ function paramList(func: Function) {
 declare const greet: (name: string) => string;
 
 @feature class _Greet extends _Shared{
-    @on greet(name: string): string {
+    @def greet(name: string): string {
         let result = `hello, ${name}!`;
         log(result);
         return result;
@@ -106,8 +110,8 @@ declare const load : (filename: string) => string;
 declare const save : (filename: string, text: string) => void;
 
 @feature export class _Files extends _Feature {
-    @on load(filename: string): string { log("not implemented"); return ""; }
-    @on save(filename: string, text: string) { log("not implemented"); }
+    @def load(filename: string): string { log("not implemented"); return ""; }
+    @def save(filename: string, text: string) { log("not implemented"); }
 }
 
 //------------------------------------------------------------------------------
@@ -118,12 +122,12 @@ declare const stringify: (arg: any) => string;
 
 @feature class _Logging extends _Feature {
     static lines: string[] = [];
-    @on log(...args: any[]) {
+    @def log(...args: any[]) {
         let message =  args.map(arg => stringify(arg)).join(' ');
         _Logging.lines.push(message);
         console.log(message);
     }
-    @on stringify(arg: any) {
+    @def stringify(arg: any) : string {
         if (typeof arg === 'object') {
             try {
                 return JSON.stringify(arg, null, 2);

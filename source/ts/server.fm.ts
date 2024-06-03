@@ -3,8 +3,8 @@
 // feature-modular server
 // author: asnaroo
 
-import * as os from "./os.ts";
-import { _Feature, feature, on, after, before, fm, console_separator } from "./fm.ts";
+import * as os from "./util/os.ts";
+import { _Feature, feature, def, replace, on, after, before, fm, console_separator } from "./fm.ts";
 import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
@@ -13,66 +13,66 @@ import * as shared from "./shared.fm.ts";
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @on async server() { console.log("ᕦ(ツ)ᕤ server"); shared.load_module(); }
+    @def async server() { console.log("ᕦ(ツ)ᕤ server"); shared.load_module(); }
 }
 
 //------------------------------------------------------------------------------
 // Server listens on port 8000 but only returns "not found" for now
 
-declare const notFound: () => Promise<Response>;
+declare const not_found: () => Promise<Response>;
 declare const handle: (req: Request) => Promise<Response|undefined>;
-declare const receiveRequest: (req: Request) => Promise<Response>;
-declare const startServer: () => Promise<void>;
+declare const receive_request: (req: Request) => Promise<Response>;
+declare const start_server: () => Promise<void>;
 
 @feature class _Server extends _Main {
-    @on async notFound() : Promise<Response> {
-        console.log("notFound!");
+    @def async not_found() : Promise<Response> {
+        console.log("not_found!");
         return new Response("Not found", { status: 404 });
     }
-    @on async handle(req: Request): Promise<Response|undefined> {
-        return notFound();
+    @def async handle(req: Request): Promise<Response|undefined> {
+        return not_found();
     }
-    @on async receiveRequest(req: Request): Promise<Response|undefined> {
+    @def async receive_request(req: Request): Promise<Response|undefined> {
         console.log(req.method, req.url);
         return handle(req);
     }
-    @on async startServer() {
-        os.serve(receiveRequest, { port: 8000 });
+    @def async start_server() {
+        os.serve(receive_request, { port: 8000 });
     }
     @after async server() {
-        startServer();
+        start_server();
     }
 }
 
 //------------------------------------------------------------------------------
 // Get implements rudimentary file serving
 
-declare const getPathFromUrl: (url: string) => string;
-declare const translatePath: (url: string) => string;
-declare const serveFile: (req: Request) => Promise<Response|undefined>;
+declare const get_path_from_URL: (url: string) => string;
+declare const translate_path: (url: string) => string;
+declare const serve_file: (req: Request) => Promise<Response|undefined>;
 
 @feature class _Get extends _Server {
     static publicFolder: string = os.cwd().replaceAll("/source/ts", "/public");
     static rootFolder: string = os.cwd().replaceAll("/source/ts", "/");
     
-    @on getPathFromUrl(url: string): string {
+    @def get_path_from_URL(url: string): string {
         return url.slice("http://localhost:8000".length);
     }
-    @on translatePath(url: string): string {
-        let path = getPathFromUrl(url);
+    @def translate_path(url: string): string {
+        let path = get_path_from_URL(url);
         if (path=='/') { path = '/index.html'; }
         return _Get.publicFolder + path;
     }
-    @on async serveFile(req: Request): Promise<Response|undefined> {
-        let path = translatePath(req.url);
+    @def async serve_file(req: Request): Promise<Response|undefined> {
+        let path = translate_path(req.url);
         if (path) {
             console.log(path.replace(_Get.rootFolder, ""));
-            return await os.serveFile(req, path); 
+            return await os.serve_file(req, path); 
         }
     }
     @before async handle(req: Request): Promise<Response|undefined> {
         if (req.method === "GET") {
-            return serveFile(req);
+            return serve_file(req);
         }
     }
 }
@@ -82,8 +82,8 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
 
 @feature class _GetJS extends _Get {
     static jsFolder : string = os.cwd().replaceAll("/source/ts", "/build/js");
-    @on translatePath(url: string): string {
-        let path = this.existing(translatePath)(url);
+    @replace translate_path(url: string): string {
+        let path = this.existing(translate_path)(url);
         if (path.endsWith(".js")) {
             path = path.replace(_Get.publicFolder, _GetJS.jsFolder);
         }
@@ -94,11 +94,11 @@ declare const serveFile: (req: Request) => Promise<Response|undefined>;
 //------------------------------------------------------------------------------
 // Put implements a simple remote procedure call mechanism
 
-declare const callFunction: (req: Request) => Promise<Response|undefined>;
+declare const call_function: (req: Request) => Promise<Response|undefined>;
 
 @feature class _Put extends _Server {
-    @on async callFunction(req: Request): Promise<Response|undefined> {
-        let functionName = getPathFromUrl(req.url).slice(1);
+    @def async call_function(req: Request): Promise<Response|undefined> {
+        let functionName = get_path_from_URL(req.url).slice(1);
         let params = await req.json();
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
@@ -107,12 +107,12 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
             if (result instanceof Promise) { result = await result; }
             return new Response(JSON.stringify(result), { status: 200 });
         } else {
-            return notFound();
+            return not_found();
         }
     }
     @before async handle(req: Request): Promise<Response|undefined> {
         if (req.method === "PUT") {
-            return callFunction(req);
+            return call_function(req);
         }
     }
 }
@@ -121,10 +121,10 @@ declare const callFunction: (req: Request) => Promise<Response|undefined>;
 // ReadWrite reads and writes file to the local file system
 
 @feature class _ReadWrite extends shared._Files {
-    @on load(path: string): string {
+    @replace load(path: string): string {
         return os.readFile(path);
     }
-    @on save(path: string, content: string) {
+    @replace save(path: string, content: string) {
         os.writeFile(path, content);
     }
 }

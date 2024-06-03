@@ -1,6 +1,7 @@
 // ᕦ(ツ)ᕤ
 // os.ts
-// all platform stuff encapsulated here
+// all server-side stuff encapsulated here; not feature modular
+// just do one thing and do it well
 // author: asnaroo
 
 import * as deno_http from "https://deno.land/std@0.165.0/http/server.ts";
@@ -10,7 +11,7 @@ export function serve(handler: Function, options: { port: number }) {
     deno_http.serve(handler, { port: 8000 });
 }
 
-export async function serveFile(req: Request, path: string) : Promise<Response> {
+export async function serve_file(req: Request, path: string) : Promise<Response> {
     return deno_file.serveFile(req, path); 
 }
 

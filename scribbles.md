@@ -15,6 +15,15 @@ we could do
 we have the mechanism to do def/replace/on properly.
 and it's early enough to make that change, so let's do that.
 
+OK let's think about this multi-module dependency issue.
+client extends shared, but not vice versa.
+
+that's the deal. so there's "shared-run" which is not the same as client-run.
+
+There's a weird issue of logic here, because the idea of a shared run is suspect.
+right now all code is client-viewpoint-first, so there's no real "shared" / "client".
+Just client stuff = stuff that only runs on client.
+so client extends shared, not the other way around.
 
 ---------------------
 

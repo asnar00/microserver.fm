@@ -46,27 +46,27 @@ And then it should respond to a `curl` request correctly:
 
 ## Implementation
 
-`main` calls `startServer`
+`main` calls `start_server`
 
     after async main() {
-        startServer();
+        start_server();
     }
 
-`startServer` starts the deno server, passing each incoming request to `handler`.
+`start_server` starts the deno server, passing each incoming request to `handler`.
 
-    on async startServer() {
+    on async start_server() {
         deno_http.serve(handler, { port: 8000 });
     }
 
-`handler` handles any request from the client, and returns a Response. To start with, it just returns `notFound`.
+`handler` handles any request from the client, and returns a Response. To start with, it just returns `not_found`.
 
     on async handler(req: Request): Promise<Response|undefined> {
-        return notFound();
+        return not_found();
     }
 
-`notFound` returns a 404 "not found" response to the client
+`not_found` returns a 404 "not found" response to the client
 
-    on async notFound() : Promise<Response> {
+    on async not_found() : Promise<Response> {
         return new Response("Not found", { status: 404 });
     }
 
@@ -80,18 +80,18 @@ And then it should respond to a `curl` request correctly:
 
     on async get(req: Request): Promise<Response|undefined> {
         let path = getLocalPath(req);
-        return deno_file.serveFile(req, path);
+        return deno_file.serve_file(req, path);
     }
 
     const publicFolder = "...";
 
     on getLocalPath(req: Request): string {
         let path = pathFromUrl(req.url);
-        return translatePath(path);
+        return translate_path(path);
     }
 
     on pathFromUrl(url: string): string { ... }
-    on translatePath(path: string): string { ... }
+    on translate_path(path: string): string { ... }
 
 # Hello
     
