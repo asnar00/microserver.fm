@@ -13,7 +13,7 @@ import * as shared from "./shared.fm.ts";
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @def async server() { console.log("ᕦ(ツ)ᕤ server"); shared.load_module(); }
+    @def async server() { console.log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
 }
 
 //------------------------------------------------------------------------------

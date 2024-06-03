@@ -3,6 +3,7 @@
 // feature-modular server
 // author: asnaroo
 
+import { log, log_group, log_end_group} from './util/logging.js';
 import { _Feature, feature, def, replace, on, after, before, make, fm, console_separator }  from "./fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
@@ -10,17 +11,10 @@ import { Device } from './shared.fm.js';
 
 addEventListener("load", () => { client(); });
 
-class TreeLog {
-    line: string = "";
-    subLogs: TreeLog[] = [];
-    constructor(line: string) { this.line = line; }
-}
-
 // -----------------------------------------------------------------------------
 // declarations from shared module. todo: find a way to automate this. later.
 // note: by convention, we can extend shared stuff, but shared can't extend client stuff.
 
-declare const log: (...args: any[]) => void;
 declare const stub: () => boolean;
 declare const ping: (device: Device) => Promise<boolean>;
 declare const startup : () => Promise<void>;
@@ -36,16 +30,13 @@ declare const my_test: () => Promise<void>;
 @feature class _Client extends _Feature {
     static server = make(Device, { url: "http://localhost", port: 8000 });
     @def async client() { 
-        log("ᕦ(ツ)ᕤ client"); 
+        log_group("ᕦ(ツ)ᕤ client.fm"); 
         shared.load_module();
         await startup();
         await run();
         await shutdown();
-        console.log("done.");
-    }
-    @on async startup() : Promise<void> {
-        let tl = new TreeLog("test log");
-        console.log(tl);
+        log("done.");
+        log_end_group();
     }
     @after async shutdown() : Promise<void> {}
 }

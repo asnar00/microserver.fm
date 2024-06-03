@@ -20,7 +20,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var _Logging_1;
+import { log } from './util/logging.js';
 import { _Feature, feature, def, after, struct, make, fm } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Run
@@ -71,12 +71,6 @@ Device = __decorate([
     struct
 ], Device);
 export { Device };
-function paramList(func) {
-    const funcStr = func.toString();
-    const paramStr = funcStr.match(/\(([^)]*)\)/)[1];
-    const params = paramStr.split(',').map(param => param.trim()).filter(param => param);
-    return params;
-}
 let _Device = class _Device extends _Feature {
     stub() { return true; }
     ping(d) {
@@ -202,40 +196,3 @@ _Files = __decorate([
     feature
 ], _Files);
 export { _Files };
-let _Logging = _Logging_1 = class _Logging extends _Feature {
-    log(...args) {
-        let message = args.map(arg => stringify(arg)).join(' ');
-        _Logging_1.lines.push(message);
-        console.log(message);
-    }
-    stringify(arg) {
-        if (typeof arg === 'object') {
-            try {
-                return JSON.stringify(arg, null, 2);
-            }
-            catch (error) {
-                console.log(error);
-                return "ack! error stringifying object";
-            }
-        }
-        else {
-            return String(arg);
-        }
-    }
-};
-_Logging.lines = [];
-__decorate([
-    def,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], _Logging.prototype, "log", null);
-__decorate([
-    def,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", String)
-], _Logging.prototype, "stringify", null);
-_Logging = _Logging_1 = __decorate([
-    feature
-], _Logging);

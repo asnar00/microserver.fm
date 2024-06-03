@@ -64,6 +64,7 @@ export function console_grey(str) { return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`
 //------------------------------------------------------------------------------
 // base class of all feature clauses
 export class _Feature {
+    test() { }
     existing(fn) {
         let name = functionNames.get(fn);
         if (name) {
@@ -293,6 +294,30 @@ function listParams(func) {
 export class FeatureManager {
     constructor() {
         this.isDebugging = false;
+    }
+    test(mf = null) {
+        if (!mf) {
+            mf = MetaFeature._byname["_Feature"];
+        }
+        if (!mf.isEnabled()) {
+            console.log('disabled');
+            return;
+        }
+        console.groupCollapsed(mf.name);
+        let feature = mf.instance;
+        if (feature) {
+            const hasTest = Object.getPrototypeOf(feature).hasOwnProperty('test');
+            if (hasTest) {
+                feature.test();
+            }
+            else {
+                console.log("no test");
+            }
+        }
+        for (let c of mf.children) {
+            this.test(c);
+        }
+        console.groupEnd();
     }
     disable(featureNames) {
         for (let mf of MetaFeature._all) {

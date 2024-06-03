@@ -3,6 +3,7 @@
 // feature-modular experiments
 // author: asnaroo
 
+import { log, log_group, log_end_group} from './util/logging.js';
 import { _Feature, feature, def, replace, on, after, before, struct, make, fm}  from "./fm.js";
 
 //-----------------------------------------------------------------------------
@@ -35,14 +36,6 @@ export declare const ping: (d: Device) => Promise<boolean>;
 export declare const remote: (d: Device, targetFunction: Function) => Function;
 
 declare const rpc: (d: Device, functionName: string, params: any) => Promise<any>;
-
-
-function paramList(func: Function) {
-  const funcStr = func.toString();
-  const paramStr = funcStr.match(/\(([^)]*)\)/)![1];
-  const params = paramStr.split(',').map(param => param.trim()).filter(param => param);
-  return params;
-}
 
 @feature class _Device extends _Feature {
     @def stub() : boolean { return true; }
@@ -112,31 +105,4 @@ declare const save : (filename: string, text: string) => void;
 @feature export class _Files extends _Feature {
     @def load(filename: string): string { log("not implemented"); return ""; }
     @def save(filename: string, text: string) { log("not implemented"); }
-}
-
-//------------------------------------------------------------------------------
-// Logging adds "log" and "silent_log";
-
-declare const log: (...args: any[]) => void;
-declare const stringify: (arg: any) => string;
-
-@feature class _Logging extends _Feature {
-    static lines: string[] = [];
-    @def log(...args: any[]) {
-        let message =  args.map(arg => stringify(arg)).join(' ');
-        _Logging.lines.push(message);
-        console.log(message);
-    }
-    @def stringify(arg: any) : string {
-        if (typeof arg === 'object') {
-            try {
-                return JSON.stringify(arg, null, 2);
-            } catch (error) {
-                console.log(error);
-                return "ack! error stringifying object";
-            }
-        } else {
-            return String(arg);
-        }
-    }   
 }
