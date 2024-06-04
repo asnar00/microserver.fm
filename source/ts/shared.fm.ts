@@ -3,7 +3,7 @@
 // feature-modular experiments
 // author: asnaroo
 
-import { log, log_group, log_end_group} from './util/logging.js';
+import { asyncLog, log, log_group, log_end_group} from './util/logging.js';
 import { _Feature, feature, def, replace, on, after, before, struct, make, fm}  from "./fm.js";
 
 //-----------------------------------------------------------------------------
@@ -73,7 +73,13 @@ declare const rpc: (d: Device, functionName: string, params: any) => Promise<any
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const responseData = await response.json();
-        return responseData;
+        const log = responseData.log;
+        if (log && log.length > 0) {
+            console.groupCollapsed(`rpc ${functionName}`);
+            console.log(log);
+            console.groupEnd();
+        }
+        return responseData.result;
     }
 }
 
@@ -85,12 +91,12 @@ declare const greet: (name: string) => string;
 @feature class _Greet extends _Shared{
     @def greet(name: string): string {
         let result = `hello, ${name}!`;
-        log(result);
+        asyncLog("tickle it ya wrigglers");
         return result;
     }
     @after async run() {
         const server = make(Device, { url: "http://localhost", port: 8000 });
-        greet("asnaroo");
+        log(greet("asnaroo"));
         const msg = await remote(server, greet)("asnaroo");
         log("server:", msg);
     }

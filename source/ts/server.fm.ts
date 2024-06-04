@@ -3,7 +3,7 @@
 // feature-modular server
 // author: asnaroo
 
-import { log, log_group, log_end_group} from './util/logging.js';
+import { asyncLog, call_asyncLogged, } from './util/logging.js';
 import * as os from "./util/os.ts";
 import { _Feature, feature, def, replace, on, after, before, fm } from "./fm.ts";
 import * as shared from "./shared.fm.ts";
@@ -14,7 +14,7 @@ import * as shared from "./shared.fm.ts";
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @def async server() { log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
+    @def async server() { console.log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
 }
 
 //------------------------------------------------------------------------------
@@ -27,14 +27,14 @@ declare const start_server: () => Promise<void>;
 
 @feature class _Server extends _Main {
     @def async not_found() : Promise<Response> {
-        log("not_found!");
+        console.log("not_found!");
         return new Response("Not found", { status: 404 });
     }
     @def async handle(req: Request): Promise<Response|undefined> {
         return not_found();
     }
     @def async receive_request(req: Request): Promise<Response|undefined> {
-        log(req.method, req.url);
+        console.log(req.method, req.url);
         return handle(req);
     }
     @def async start_server() {
@@ -51,11 +51,26 @@ declare const start_server: () => Promise<void>;
 declare const get_path_from_URL: (url: string) => string;
 declare const translate_path: (url: string) => string;
 declare const serve_file: (req: Request) => Promise<Response|undefined>;
+declare const mime_type: (path: string) => string;
 
 @feature class _Get extends _Server {
     static publicFolder: string = os.cwd().replaceAll("/source/ts", "/public");
     static rootFolder: string = os.cwd().replaceAll("/source/ts", "/");
-    
+
+    @before async handle(req: Request): Promise<Response|undefined> {
+        if (req.method === "GET") {
+            return serve_file(req);
+        }
+    }
+    @def async serve_file(req: Request): Promise<Response|undefined> {
+        let path = translate_path(req.url);
+        if (path) {
+            console.log(path.replace(_Get.rootFolder, ""));
+            let content = os.readFile(path);
+            let type = mime_type(path); 
+            return new Response(content, { headers: { "Content-Type": type } });
+        }
+    }
     @def get_path_from_URL(url: string): string {
         return url.slice("http://localhost:8000".length);
     }
@@ -64,16 +79,14 @@ declare const serve_file: (req: Request) => Promise<Response|undefined>;
         if (path=='/') { path = '/index.html'; }
         return _Get.publicFolder + path;
     }
-    @def async serve_file(req: Request): Promise<Response|undefined> {
-        let path = translate_path(req.url);
-        if (path) {
-            log(path.replace(_Get.rootFolder, ""));
-            return await os.serve_file(req, path); 
-        }
-    }
-    @before async handle(req: Request): Promise<Response|undefined> {
-        if (req.method === "GET") {
-            return serve_file(req);
+    @def mime_type(path: string): string {
+        const extension = os.extension(path);
+        switch (extension) {
+            case ".html": return "text/html";
+            case ".js": return "application/javascript";
+            case ".json": return "application/json";
+            case ".ico": return "image/x-icon";
+            default: return "application/octet-stream";
         }
     }
 }
@@ -103,10 +116,13 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
         let params = await req.json();
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
-            log("calling:", functionName, "with", params);
-            let result : any = func(...Object.values(params));
-            if (result instanceof Promise) { result = await result; }
-            return new Response(JSON.stringify(result), { status: 200 });
+            console.log("calling:", functionName, "with", params);
+            //let result : any = func(...Object.values(params));
+            //if (result instanceof Promise) { result = await result; }
+            //let response = { result: result, log: "test log message" };
+            const response = await call_asyncLogged(func, ...Object.values(params));
+            console.log("response:", response);
+            return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
             return not_found();
         }

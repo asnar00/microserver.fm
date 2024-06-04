@@ -28,21 +28,7 @@ function formatLog(...args: any[]): string {
         }
     }).join(' '); // Join all parts with a space, similar to how console.log does
     if (_suffix != "") {
-        let crstr = "";
-        while(outstr.length >= _width) {
-            crstr += outstr.slice(0, _width) + "\n";
-            outstr = outstr.slice(_width);
-        }
-    
-        let nSpaces = _width - outstr.length - _suffix.length 
-        if (nSpaces > 0) {
-            crstr += outstr + " ".repeat(nSpaces);
-            crstr += console_grey(_suffix);
-        } else {
-            crstr += outstr + "\n";
-            crstr += " ".repeat(_width - _suffix.length) + console_grey(_suffix);
-        }
-        return crstr;
+        return outstr + "    " + console_grey(_suffix);
     }
     return outstr;
 }

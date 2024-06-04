@@ -20,7 +20,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { log } from './util/logging.js';
+import { asyncLog, log } from './util/logging.js';
 import { _Feature, feature, def, after, struct, make, fm } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Run
@@ -115,7 +115,13 @@ let _Device = class _Device extends _Feature {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const responseData = yield response.json();
-            return responseData;
+            const log = responseData.log;
+            if (log && log.length > 0) {
+                console.groupCollapsed(`rpc ${functionName}`);
+                console.log(log);
+                console.groupEnd();
+            }
+            return responseData.result;
         });
     }
 };
@@ -149,13 +155,13 @@ _Device = __decorate([
 let _Greet = class _Greet extends _Shared {
     greet(name) {
         let result = `hello, ${name}!`;
-        log(result);
+        asyncLog("tickle it ya wrigglers");
         return result;
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
             const server = make(Device, { url: "http://localhost", port: 8000 });
-            greet("asnaroo");
+            log(greet("asnaroo"));
             const msg = yield remote(server, greet)("asnaroo");
             log("server:", msg);
         });

@@ -1,5 +1,33 @@
 # scribbles
 
+moving closer to logging nirvana.
+we've now managed to get it so log messages on the server can be read on the client
+we have an expandable console.
+next steps are:
+
+1- implement log using FM, so we can just use 'log' on both server and client
+2- wrap the async console caller around the earliest part of the serve chain
+3- be able to turn logging on or off per feature
+4- get suffixes working again, via the async stuff
+
+
+
+________________________________________________________________________________
+Productive day:
+semantic change:  def, replace, parallel-on. works!
+tree-logging: doesn't do threads yet, but that's next.
+want to attach the log to the request:
+
+    log(request, msg);
+
+and then we can send back that stuff to the client, which would be huge.
+We're actually not interested in the details around it, as much as we are what's inside the function.
+That function doesn't know anything about the calling context, so it's harder.
+you just need to pass the log into the function somehow.
+but then that has to pass that one further down, and so on.
+So I do need some kind of per-thread object.
+
+________________________________________________________________________________
 semantic change:
 
     @def : define function for first time (error if already defined)

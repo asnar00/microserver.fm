@@ -21,7 +21,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var _Offline_1;
-import { log, log_group, log_end_group } from './util/logging.js';
+import { log } from './util/logging.js';
 import { _Feature, feature, def, on, after, make, } from "./fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
@@ -30,13 +30,12 @@ addEventListener("load", () => { client(); });
 let _Client = class _Client extends _Feature {
     client() {
         return __awaiter(this, void 0, void 0, function* () {
-            log_group("ᕦ(ツ)ᕤ client.fm");
+            log("ᕦ(ツ)ᕤ client.fm");
             shared.load_module();
             yield startup();
             yield run();
             yield shutdown();
             log("done.");
-            log_end_group();
         });
     }
     shutdown() {

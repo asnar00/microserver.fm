@@ -30,13 +30,12 @@ declare const my_test: () => Promise<void>;
 @feature class _Client extends _Feature {
     static server = make(Device, { url: "http://localhost", port: 8000 });
     @def async client() { 
-        log_group("ᕦ(ツ)ᕤ client.fm"); 
+        log("ᕦ(ツ)ᕤ client.fm"); 
         shared.load_module();
         await startup();
         await run();
         await shutdown();
         log("done.");
-        log_end_group();
     }
     @after async shutdown() : Promise<void> {}
 }
