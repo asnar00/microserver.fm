@@ -126,8 +126,6 @@ export function call_asyncLogged(fn, ...args) {
     return asyncLocalStorage.run(context, () => __awaiter(this, void 0, void 0, function* () {
         try {
             let result = yield fn(...args);
-            console.log(`Request ${requestId} completed with result:`, result);
-            console.log(`Request ${requestId} logs:`, context.logs.join('\n'));
             return { result: result, log: context.logs.join('\n') };
         }
         catch (error) {

@@ -121,8 +121,6 @@ export function call_asyncLogged(fn: Function, ...args: any[]) {
     return asyncLocalStorage.run(context, async () => {
         try {
             let result = await fn(...args);
-            console.log(`Request ${requestId} completed with result:`, result);
-            console.log(`Request ${requestId} logs:`, context.logs.join('\n'));
             return { result: result, log: context.logs.join('\n') };
         } catch (error) {
             asyncLog("Error:", error);
