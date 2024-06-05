@@ -84,3 +84,4 @@ _Countdown = __decorate([
 fm.readout();
 fm.debug(true);
 main();
+//# sourceMappingURL=hello.fm.js.map

@@ -71,3 +71,4 @@ _AlphaColour = __decorate([
     feature
 ], _AlphaColour);
 main();
+//# sourceMappingURL=colours.fm.js.map

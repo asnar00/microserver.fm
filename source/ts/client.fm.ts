@@ -3,7 +3,6 @@
 // feature-modular server
 // author: asnaroo
 
-import { log, log_group, log_end_group} from './util/logging.js';
 import { _Feature, feature, def, replace, on, after, before, make, fm, }  from "./fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
@@ -15,6 +14,10 @@ addEventListener("load", () => { client(); });
 // declarations from shared module. todo: find a way to automate this. later.
 // note: by convention, we can extend shared stuff, but shared can't extend client stuff.
 
+declare const log: (...args: any[]) => void;
+declare const log_group: (title: string) => void;
+declare const log_end_group: () => void;
+declare const log_output: () => void;
 declare const stub: () => boolean;
 declare const ping: (device: Device) => Promise<boolean>;
 declare const startup : () => Promise<void>;
@@ -30,7 +33,7 @@ declare const my_test: () => Promise<void>;
 @feature class _Client extends _Feature {
     static server = make(Device, { url: "http://localhost", port: 8000 });
     @def async client() { 
-        log("ᕦ(ツ)ᕤ client.fm"); 
+        log("ᕦ(ツ)ᕤ client.fm");
         shared.load_module();
         await startup();
         await run();

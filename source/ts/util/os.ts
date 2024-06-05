@@ -11,10 +11,6 @@ export function serve(serveFn: Function, options: { port: number }) {
     deno_http.serve(serveFn, { port: 8000 });
 }
 
-export async function serve_file(req: Request, path: string) : Promise<Response> {
-    return deno_file.serveFile(req, path); 
-}
-
 export function cwd() {
     return Deno.cwd();
 }

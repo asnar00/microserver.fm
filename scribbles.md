@@ -1,5 +1,56 @@
 # scribbles
 
+The logging thing works like this:
+
+1. There are two basic "modes" of modifying a program:
+    - "additive" : we're making something "new"
+    - "restorative" : we're fixing something that's broken
+
+These two cases are subtly different, even though they both involve the same steps:
+in the first case, the program is already doing what it says on the tin; we're adding to its mission.
+In the second case, the program isn't doing what it should be.
+
+"what it should be" is the whole test/spec/doc thing we invented in zerp.
+So really, we shouldn't spend too much time agonising about the right console workflow here,
+because in fact it depends on the zerp workflow, which is different to the normal one.
+
+So the right thing to do for now is to be able to turn on/off logging on feature-by-feature basis.
+
+feature-granular logging. I'm working on a new feature F, so I want to see its logs;
+so everything it calls, I want to know about.
+
+every log statement should output in such a way that the log line comes through, so we can feed it back.
+
+
+
+-----------------------------------------------------------------------------------
+dawning realisations about async/parallel programming:
+
+if you do await X, you're actually saying "please execute this synchronously"
+if you *don't* await X, you're saying, actually, fork execution here.
+
+The zero model, saying:
+
+- everything synchronous by default
+- map / reduce / filter work in parallel
+- on extends behaviour in parallel (add 'combine' operation for non-void-returning tasks)
+
+works super nicely to specify behaviour.
+
+logging is an interesting thing. There's actually two cases here:
+
+1- where you're developing some new code, and you instrument it heavily. once you're done, you distill a test.
+2- something goes wrong with "old" code, so you re-instrument it, and voila.
+
+You kind of want to be able to turn logging on or off on a feature-by-feature basis.
+I think that's a super interesting approach.
+You could use "this.log" which redirects the best function, or nothing.
+
+I kind of actually really dig this approach, because this.log can hide all kinds of shite.
+So when you're developing a new feature, you turn logging on for that feature, and you get everything for "free".
+When you finish, you turn logging off, and all the logging statements stay there, but just compile to nothing.
+
+________________________________________________________________________________
 moving closer to logging nirvana.
 we've now managed to get it so log messages on the server can be read on the client
 we have an expandable console.
@@ -10,7 +61,8 @@ next steps are:
 3- be able to turn logging on or off per feature
 4- get suffixes working again, via the async stuff
 
-
+Then local storage. fm is actually good for a bunch of stuff. I like it a lot.
+I'm starting to get the hang of fm, which feels good.
 
 ________________________________________________________________________________
 Productive day:

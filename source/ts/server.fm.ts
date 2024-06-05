@@ -3,10 +3,13 @@
 // feature-modular server
 // author: asnaroo
 
-import { asyncLog, call_asyncLogged, } from './util/logging.js';
 import * as os from "./util/os.ts";
 import { _Feature, feature, def, replace, on, after, before, fm } from "./fm.ts";
 import * as shared from "./shared.fm.ts";
+
+//------------------------------------------------------------------------------
+// declarations from shared
+declare const log_async_run : (fn: Function, ...args: any[]) => Promise<shared.LogResult>;
 
 //------------------------------------------------------------------------------
 // Main doesn't do much
@@ -92,14 +95,18 @@ declare const mime_type: (path: string) => string;
 }
 
 //------------------------------------------------------------------------------
-// GetJS redirects ".js" requests to the /js folder
+// GetJS redirects ".js" and ".js.map" requests to the /js folder
 
 @feature class _GetJS extends _Get {
+    static tsFolder : string = os.cwd();
     static jsFolder : string = os.cwd().replaceAll("/source/ts", "/build/js");
     @replace translate_path(url: string): string {
         let path = this.existing(translate_path)(url);
-        if (path.endsWith(".js")) {
+        if (path.endsWith(".js") || path.endsWith(".js.map")) {
             path = path.replace(_Get.publicFolder, _GetJS.jsFolder);
+        } else if (path.endsWith(".ts")) {
+            console.log("ts path:", path);
+            path = path.replace("public/", "");
         }
         return path;
     }
@@ -120,7 +127,7 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
             //let result : any = func(...Object.values(params));
             //if (result instanceof Promise) { result = await result; }
             //let response = { result: result, log: "test log message" };
-            const response = await call_asyncLogged(func, ...Object.values(params));
+            const response = await log_async_run(func, ...Object.values(params));
             console.log("response:", response);
             return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
@@ -146,8 +153,8 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
     }
 }
 
-fm.readout();
-fm.listModuleScopeFunctions();
+//fm.readout();
+//fm.listModuleScopeFunctions();
 fm.debug(true);
-
+console.log("--------------------------------------------------------------------------------");
 server();

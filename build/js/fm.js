@@ -11,7 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { log, log_group, log_end_group } from './util/logging.js';
 //------------------------------------------------------------------------------
 // logging
 let _indent = ""; // start of each console for indenting
@@ -282,30 +281,6 @@ export class FeatureManager {
     constructor() {
         this.isDebugging = false;
     }
-    test(mf = null) {
-        if (!mf) {
-            mf = MetaFeature._byname["_Feature"];
-        }
-        if (!mf.isEnabled()) {
-            log('disabled');
-            return;
-        }
-        console.groupCollapsed(mf.name);
-        let feature = mf.instance;
-        if (feature) {
-            const hasTest = Object.getPrototypeOf(feature).hasOwnProperty('test');
-            if (hasTest) {
-                feature.test();
-            }
-            else {
-                log("no test");
-            }
-        }
-        for (let c of mf.children) {
-            this.test(c);
-        }
-        console.groupEnd();
-    }
     disable(featureNames) {
         for (let mf of MetaFeature._all) {
             mf.enabled = true;
@@ -321,17 +296,18 @@ export class FeatureManager {
     readout(mf = null) {
         if (!mf) {
             mf = MetaFeature._byname["_Feature"];
-            log("Defined features:");
+            console.log("Defined features:");
         }
         if (mf.isEnabled()) {
-            log_group(mf.name);
+            console.log(mf.name);
+            console_indent();
             for (let c of mf.children) {
                 this.readout(c);
             }
-            log_end_group();
+            console_undent();
         }
         else {
-            log(`${mf.name} disabled`);
+            console.log(console_grey(mf.name));
         }
     }
     debug(onOff) {
@@ -499,9 +475,9 @@ export class FeatureManager {
         functionNames.set(fn, name);
     }
     listModuleScopeFunctions() {
-        log("Defined functions:");
+        console.log("Defined functions:");
         for (let name of Object.keys(functionRegistry)) {
-            log("   ", name);
+            console.log("   ", name);
         }
     }
     clearModuleScopeFunctions() {
@@ -525,3 +501,4 @@ export class FeatureManager {
 export const fm = new FeatureManager();
 //------------------------------------------------------------------------------
 // Websockets
+//# sourceMappingURL=fm.js.map

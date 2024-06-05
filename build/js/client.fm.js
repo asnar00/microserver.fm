@@ -21,7 +21,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var _Offline_1;
-import { log } from './util/logging.js';
 import { _Feature, feature, def, on, after, make, } from "./fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
@@ -108,3 +107,4 @@ __decorate([
 _Offline = _Offline_1 = __decorate([
     feature
 ], _Offline);
+//# sourceMappingURL=client.fm.js.map

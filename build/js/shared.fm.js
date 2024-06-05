@@ -20,8 +20,257 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { asyncLog, log } from './util/logging.js';
-import { _Feature, feature, def, after, struct, make, fm } from "./fm.js";
+var _Logging_1, _AsyncLogging_1;
+import { _Feature, feature, def, replace, after, struct, make, fm } from "./fm.js";
+//-----------------------------------------------------------------------------
+// Logging
+let Log = class Log {
+    constructor() {
+        this.title = "";
+        this.contents = [];
+    }
+};
+Log = __decorate([
+    struct
+], Log);
+let LogManager = class LogManager {
+    constructor() {
+        this.current = make(Log, { title: "log" });
+        this.stack = [this.current];
+        this.live = true;
+    }
+};
+LogManager = __decorate([
+    struct
+], LogManager);
+let _Logging = _Logging_1 = class _Logging extends _Feature {
+    log(...args) {
+        const message = args.map(arg => stringify(arg)).join(' ');
+        const logManager = log_get_manager();
+        logManager.current.contents.push(message);
+        if (logManager.live) {
+            console.log(message);
+        }
+    }
+    log_group(title) {
+        const logManager = log_get_manager();
+        const tl = make(Log, { title: title });
+        logManager.current.contents.push(tl);
+        logManager.stack.push(tl);
+        logManager.current = tl;
+        if (logManager.live) {
+            console.groupCollapsed(title);
+        }
+    }
+    log_end_group(suffix = "") {
+        const logManager = log_get_manager();
+        logManager.current.title += suffix;
+        if (logManager.stack.length > 1) {
+            logManager.stack.pop();
+            logManager.current = logManager.stack[logManager.stack.length - 1];
+        }
+        if (logManager.live) {
+            console.groupEnd();
+        } // NOTE: live consoles can't amend titles
+    }
+    log_push(log) {
+        const logManager = log_get_manager();
+        logManager.current.contents.push(log);
+        if (logManager.live) {
+            log_output_rec(log);
+        }
+    }
+    log_output() {
+        log_output_rec(log_get_manager().stack[0]);
+    }
+    log_output_rec(log) {
+        console.groupCollapsed(log.title);
+        log.contents.forEach((content) => {
+            if (typeof content === 'string') {
+                console.log(content);
+            }
+            else {
+                log_output_rec(content);
+            }
+        });
+        console.groupEnd();
+    }
+    log_get_manager() {
+        return _Logging_1.defaultLogManager;
+    }
+    stringify(arg) {
+        if (typeof arg === 'object') {
+            try {
+                return JSON.stringify(arg, null, 2);
+            }
+            catch (error) { }
+        }
+        return String(arg);
+    }
+};
+_Logging.defaultLogManager = make(LogManager, {});
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log_group", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log_end_group", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Log]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log_push", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log_output", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Log]),
+    __metadata("design:returntype", void 0)
+], _Logging.prototype, "log_output_rec", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", LogManager)
+], _Logging.prototype, "log_get_manager", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", String)
+], _Logging.prototype, "stringify", null);
+_Logging = _Logging_1 = __decorate([
+    feature
+], _Logging);
+//-----------------------------------------------------------------------------
+// AsyncLogging
+let LogResult = class LogResult {
+    constructor() {
+        this.result = undefined;
+        this.log = undefined;
+    }
+};
+LogResult = __decorate([
+    struct
+], LogResult);
+export { LogResult };
+class AsyncLocalStorage {
+    constructor() {
+        this.map = new Map();
+        this.id = 0;
+    }
+    run(store, callback) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const id = ++this.id;
+            this.map.set(id, store);
+            try {
+                let result = callback();
+                if (result instanceof Promise) {
+                    result = yield result;
+                }
+                return result;
+            }
+            finally {
+                this.map.delete(id);
+            }
+        });
+    }
+    getStore() {
+        const id = this.id;
+        return this.map.get(id);
+    }
+}
+let _AsyncLogging = _AsyncLogging_1 = class _AsyncLogging extends _Logging {
+    log_async_run(fn, ...args) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const requestId = generateUUIDv4();
+            const context = { requestId, logManager: make(LogManager, {}) };
+            return _AsyncLogging_1.localStorage.run(context, () => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    let result = yield fn(...args);
+                    return make(LogResult, { result: result, log: context.logManager.stack[0] });
+                }
+                catch (error) {
+                    return make(LogResult, { result: error, log: context.logManager.stack[0] });
+                }
+            }));
+        });
+    }
+    log_get_manager() {
+        const store = _AsyncLogging_1.localStorage.getStore();
+        if (store) {
+            return store.logManager;
+        }
+        else {
+            return _Logging.defaultLogManager;
+        }
+    }
+    generateUUIDv4() {
+        return `${randomHex(8)}-${randomHex(4)}-4${randomHex(3)}-${(8 + Math.floor(Math.random() * 4)).toString(16)}${randomHex(3)}-${randomHex(12)}`;
+    }
+    randomHex(length) {
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += randomHexDigit();
+        }
+        return result;
+    }
+    randomHexDigit() {
+        return Math.floor(Math.random() * 16).toString(16);
+    }
+};
+_AsyncLogging.localStorage = new AsyncLocalStorage();
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Function, Object]),
+    __metadata("design:returntype", Promise)
+], _AsyncLogging.prototype, "log_async_run", null);
+__decorate([
+    replace,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", LogManager)
+], _AsyncLogging.prototype, "log_get_manager", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], _AsyncLogging.prototype, "generateUUIDv4", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", void 0)
+], _AsyncLogging.prototype, "randomHex", null);
+__decorate([
+    def,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], _AsyncLogging.prototype, "randomHexDigit", null);
+_AsyncLogging = _AsyncLogging_1 = __decorate([
+    feature
+], _AsyncLogging);
 //-----------------------------------------------------------------------------
 // Run
 export const load_module = () => { };
@@ -116,10 +365,9 @@ let _Device = class _Device extends _Feature {
             }
             const responseData = yield response.json();
             const log = responseData.log;
-            if (log && log.length > 0) {
-                console.groupCollapsed(`rpc ${functionName}`);
-                console.log(log);
-                console.groupEnd();
+            if (log) {
+                log.title = `rpc.${functionName}`;
+                log_push(log);
             }
             return responseData.result;
         });
@@ -155,7 +403,7 @@ _Device = __decorate([
 let _Greet = class _Greet extends _Shared {
     greet(name) {
         let result = `hello, ${name}!`;
-        asyncLog("tickle it ya wrigglers");
+        log("tickle it ya wrigglers");
         return result;
     }
     run() {
@@ -202,3 +450,4 @@ _Files = __decorate([
     feature
 ], _Files);
 export { _Files };
+//# sourceMappingURL=shared.fm.js.map
