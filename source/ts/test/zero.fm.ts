@@ -3,7 +3,7 @@
 // author: asnaroo
 // compiles zero to typescript
 
-import { _Feature, feature, on, after, before, fm } from "../fm.js";
+import { _Feature, feature, on, after, before, fm } from "../util/fm.js";
 
 //-----------------------------------------------------------------------------
 // Main

@@ -1,5 +1,29 @@
 # scribbles
 
+What you want is:
+I'm calling A and B in parallel, I want some kind of indication of that in the log tree. 
+
+Log = (Log|Line)[];
+
+If you really want this to work, you have to be absolutely ruthless about tracking concurrency.
+
+so if I have async functions A and B, and I call them in parallel like this:
+
+    await Promise.all(a(), b())
+
+Then really I need to wrap the a() and b() functions with a call to async_log.
+
+But if I'm doing this:
+
+    await a();
+    await b();
+
+Ideally, I just pass the log property in as a "silent parameter".
+
+I'm definitely overthinking this shit. But never mind, let's overthink it, and get something amazing.
+
+----------------------------------------------------------------------------
+
 The logging thing works like this:
 
 1. There are two basic "modes" of modifying a program:
@@ -20,6 +44,17 @@ feature-granular logging. I'm working on a new feature F, so I want to see its l
 so everything it calls, I want to know about.
 
 every log statement should output in such a way that the log line comes through, so we can feed it back.
+Thing is: do we really want to know what's going on in every function?
+
+When we look at the console log in the browser, we want to see:
+- output from the function(s) we're writing : i.e. the new feature
+- output from any failures that happened, with their location.
+
+So let's just issue warnings and errors, not status log messages unless absolutely necessary.
+My feeling is: just keep it feature granular, we don't need to know about other stuff.
+We want to know how the feature behaves, and all of that information is contained in its code.
+
+OK: that makes it fairly simple, right? this.log()  => does the same thing, but only if the feature's debug switch is enabled.
 
 
 

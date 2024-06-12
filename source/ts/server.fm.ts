@@ -4,12 +4,13 @@
 // author: asnaroo
 
 import * as os from "./util/os.ts";
-import { _Feature, feature, def, replace, on, after, before, fm } from "./fm.ts";
+import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.ts";
 import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
 // declarations from shared
-declare const log_async_run : (fn: Function, ...args: any[]) => Promise<shared.LogResult>;
+declare const log: (...args: any[]) => void;
+declare const async_log_function : <R>(fn: Function, ...args: any[]) => shared.LogResult<R>;
 
 //------------------------------------------------------------------------------
 // Main doesn't do much
@@ -17,7 +18,7 @@ declare const log_async_run : (fn: Function, ...args: any[]) => Promise<shared.L
 declare const server: () => Promise<void>;
 
 @feature class _Main extends _Feature {
-    @def async server() { console.log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
+    @def async server() { log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
 }
 
 //------------------------------------------------------------------------------
@@ -30,14 +31,14 @@ declare const start_server: () => Promise<void>;
 
 @feature class _Server extends _Main {
     @def async not_found() : Promise<Response> {
-        console.log("not_found!");
+        log("not_found!");
         return new Response("Not found", { status: 404 });
     }
     @def async handle(req: Request): Promise<Response|undefined> {
         return not_found();
     }
     @def async receive_request(req: Request): Promise<Response|undefined> {
-        console.log(req.method, req.url);
+        log(req.method, req.url);
         return handle(req);
     }
     @def async start_server() {
@@ -68,7 +69,7 @@ declare const mime_type: (path: string) => string;
     @def async serve_file(req: Request): Promise<Response|undefined> {
         let path = translate_path(req.url);
         if (path) {
-            console.log(path.replace(_Get.rootFolder, ""));
+            log(path.replace(_Get.rootFolder, ""));
             let content = os.readFile(path);
             let type = mime_type(path); 
             return new Response(content, { headers: { "Content-Type": type } });
@@ -105,7 +106,7 @@ declare const mime_type: (path: string) => string;
         if (path.endsWith(".js") || path.endsWith(".js.map")) {
             path = path.replace(_Get.publicFolder, _GetJS.jsFolder);
         } else if (path.endsWith(".ts")) {
-            console.log("ts path:", path);
+            log("ts path:", path);
             path = path.replace("public/", "");
         }
         return path;
@@ -124,11 +125,8 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
             console.log("calling:", functionName, "with", params);
-            //let result : any = func(...Object.values(params));
-            //if (result instanceof Promise) { result = await result; }
-            //let response = { result: result, log: "test log message" };
-            const response = await log_async_run(func, ...Object.values(params));
-            console.log("response:", response);
+            const logResult = await async_log_function(func, ...Object.values(params));
+            const response = { result: logResult.result, log: logResult.log };
             return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
             return not_found();
@@ -153,8 +151,25 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
     }
 }
 
-//fm.readout();
-//fm.listModuleScopeFunctions();
+fm.readout();
+fm.listModuleScopeFunctions();
 fm.debug(true);
 console.log("--------------------------------------------------------------------------------");
-server();
+//server();
+
+declare const test_log : () => void;
+declare const sub_func : () => void;
+
+@feature class _TestLog extends _Main {
+    @def test_log() {
+        fm.log("this is a message to console");
+        sub_func();
+    }
+    @def sub_func() {
+        fm.log("this is a message to console from sub_func");
+    }
+}
+
+fm.log("about to call test_log");
+test_log();
+fm.printLog();

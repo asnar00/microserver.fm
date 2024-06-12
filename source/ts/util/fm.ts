@@ -4,44 +4,6 @@
 // feature-modular typescript
 
 //------------------------------------------------------------------------------
-// logging
-
-let _indent: string = "";   // start of each console for indenting
-let _suffix: string = "";   // at the end of each console line, print this in grey
-let _stack: string[] = [];  // current callstack
-let _width: number = 80;    // width of the console
-
-function formatLog(...args: any[]): string {
-    // Convert all arguments to strings and handle objects specifically
-    let outstr = args.map(arg => {
-        if (typeof arg === 'object') {
-            // Use JSON.stringify to convert objects to strings
-            try {
-                return JSON.stringify(arg, null, 2);
-            } catch (error) {
-                return String(arg);
-            }
-        } else {
-            // Convert non-objects to strings directly
-            return String(arg);
-        }
-    }).join(' '); // Join all parts with a space, similar to how console.log does
-    if (_suffix != "") {
-        return outstr + "    " + console_grey(_suffix);
-    }
-    return outstr;
-}
-
-const originalConsoleLog = console.log;     // Store the original console.log function
-console.log = (...args) => {                // Override console.log
-    originalConsoleLog(_indent + formatLog(...args)); 
-};
-export const console_indent = () => { _indent += "  "; };  // Add two spaces to the indentation
-export const console_undent = () => { _indent = _indent.slice(0, -2); };  // Remove two spaces from the indentation
-export const console_separator = () => { console.log("-".repeat(_width)); };  // Print a separator line
-export function console_grey(str: string) : string { return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`; }
-
-//------------------------------------------------------------------------------
 // base class of all feature clauses
 
 export class _Feature {
@@ -314,6 +276,7 @@ function listParams(func: Function): string[] {
 export class FeatureManager {
     isDebugging: boolean = false;
 
+    // disable one or more features
     disable(featureNames: string[]) {
         for(let mf of MetaFeature._all) {
             mf.enabled = true;
@@ -325,28 +288,29 @@ export class FeatureManager {
         this.rebuild();
     }
 
-    readout(mf: MetaFeature|null=null) {
+    // output current feature tree to console
+    readout(mf: MetaFeature|null=null, indent=0) {
         if (!mf) {  
             mf = MetaFeature._byname["_Feature"]; 
             console.log("Defined features:");
         }
         if (mf.isEnabled()) {
-            console.log(mf.name);
-            console_indent();
+            console.log(`${" ".repeat(indent)}${mf.name}`);
             for (let c of mf.children) {
-                this.readout(c);
+                this.readout(c, indent+2);
             }
-            console_undent();
         } else {
-            console.log(console_grey(mf.name));
+            console.log(mf.name, "(disabled)");
         }
     }
 
+    // turn logging off or on for all features
     debug(onOff: boolean) {
         this.isDebugging = onOff;
         this.rebuild();
     }
 
+    // rebuild all features
     rebuild() {
         this.clearModuleScopeFunctions();
         for(let mf of MetaFeature._all) {
@@ -354,9 +318,11 @@ export class FeatureManager {
         }
     }
 
+    // build all functions for a feature
     buildFeature(mf: MetaFeature) {
         for(let mfn of mf.functions) { 
             let newFunction = this.buildFunction(mf, mfn);
+            Object.defineProperty(newFunction, "name", { value: mfn.name });
             if (this.isDebugging) {
                 newFunction = this.logFunction(mf, mfn, newFunction);
             }
@@ -364,28 +330,27 @@ export class FeatureManager {
         }
     }
 
+    // returns a function wrapping the original function with logging calls
     logFunction(mf: MetaFeature, mfn: MetaFunction, func: Function) : Function {
         if (mfn.isAsync) {
             return async function (...args: any[]) {
-                _stack.push(`${mf.name}.${mfn.name}`);
-                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
-                const result = await func(...args);
-                _stack.pop();
-                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length-1]}` : '';
-                return result;
+                let log = fm.logGroup(mfn.name);
+                const result = await fm.asyncLog(func, ...args);
+                log.contents.push(new LogLine("", result.log));
+                fm.endLogGroup();
+                return result.result;
             };
         } else {
             return function (...args: any[]) {
-                _stack.push(`${mf.name}.${mfn.name}`);
-                _suffix = `◀︎ ${_stack[_stack.length-1]}`;
+                fm.logGroup(mfn.name);
                 const result = func(...args);
-                _stack.pop();
-                _suffix = (_stack.length > 0) ? `◀︎ ${_stack[_stack.length-1]}` : '';
+                fm.endLogGroup();
                 return result;
             };
         }
     }
 
+    // build a function based on the MetaFunction
     buildFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         if (mfn.decorator == "def") { return this.buildDefFunction(mf, mfn); }
         else if (mfn.decorator == "replace") { return this.buildReplaceFunction(mf, mfn); }
@@ -395,6 +360,7 @@ export class FeatureManager {
         else { throw new Error(`unknown decorator ${mfn.decorator}`); }
     }
 
+    // build a function that defines a new function
     buildDefFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (originalFunction) {  
@@ -404,6 +370,7 @@ export class FeatureManager {
         return boundMethod;
     }
 
+    // build a function that replaces an existing function with a new one
     buildReplaceFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) { throw new Error(`${mf.name}.replace: ${mfn.name} not found`); }
@@ -411,6 +378,7 @@ export class FeatureManager {
         return boundMethod;
     }
 
+    // build a function that extends the original with a parallel call to the new one
     buildOnFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const boundMethod = mfn.method.bind(mf.instance);
         const originalFunction = functionRegistry[mfn.name];
@@ -421,17 +389,18 @@ export class FeatureManager {
         };
     }
 
+    // build a function that calls the new function after the original
     buildAfterFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) { throw new Error(`${mf.name}.after: ${mfn.name} not found`); }
         if (mfn.isAsync) {
+            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mf.name}.before: ${mfn.name} must be async`); }
             const newFunction = async function (...args: any[]) {
                 let _result = await originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
             };
             return newFunction;
         } else {
-            if (!mfn.isAsync) { throw new Error(`${mf.name}.after: ${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 let _result = originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
@@ -440,10 +409,12 @@ export class FeatureManager {
         }
     }
 
+    // build a function that calls the new function before the original
     buildBeforeFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) { throw new Error(`${mf.name}.before: ${mfn.name} not found`); }
         if (mfn.isAsync) {
+            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mf.name}.before: ${mfn.name} must be async`); }
             const newFunction =  async function (...args: any[]) {
                 const newResult = await mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }
@@ -451,7 +422,6 @@ export class FeatureManager {
             };
             return newFunction;
         } else {
-            if (!mfn.isAsync) { throw new Error(`${mf.name}.before: ${mfn.name} must be async`); }
             const newFunction = function (...args: any[]) {
                 const newResult = mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }
@@ -461,6 +431,10 @@ export class FeatureManager {
         }
     }
 
+    //-------------------------------------------------------------------------
+    // low-level function management in module (=global) scope
+
+    // replace a function in module (=global) scope
     replaceModuleScopeFunction(name: string, newFn: Function) {
         if (functionRegistry[name]) {
             (proxiedGlobalThis as any)[name] = newFn;
@@ -470,11 +444,13 @@ export class FeatureManager {
         }
     }
 
+    // define a function in module (=global) scope
     defineModuleScopeFunction(name: string, fn: Function) {
         (proxiedGlobalThis as any)[name] = fn;
         functionNames.set(fn, name);
     }
 
+    // list all functions in module (=global) scope
     listModuleScopeFunctions() {
         console.log("Defined functions:");
         for(let name of Object.keys(functionRegistry)) {
@@ -482,6 +458,7 @@ export class FeatureManager {
         }
     }
 
+    // clear all functions in module (=global) scope
     clearModuleScopeFunctions() {
         for(let name of Object.keys(functionRegistry)) {
             const fn = (proxiedGlobalThis as any)[name];
@@ -491,21 +468,182 @@ export class FeatureManager {
         }
     }
 
-    getModuleScopeFunction(name: string) {
+    // find a function from module (=global) scope by name
+    getModuleScopeFunction(name: string) : Function {
         return functionRegistry[name];
     }
 
-    getFunctionName(fn: Function) {
+    // low-level: get the name of a function
+    getFunctionName(fn: Function) : string|undefined {
+        let name = fn.name;
+        if (name && name != "") { return name; }
         return functionNames.get(fn);
     }
 
-    getFunctionParams(name: string) {
+    // low-level: get the parameters of a function
+    getFunctionParams(name: string) : string[] {
         return MetaFunction._byName[name].params;
+    }
+
+    //-------------------------------------------------------------------------
+    // logging
+
+    // simple output message, tagged with source file and line
+    log(...args: any[]) {
+        const message = args.map(arg => stringify(arg)).join(' ');
+        const stack : string[] = get_stack();
+        const location = get_location(stack);
+        const logManager = get_log_manager(stack);
+        logManager.current!.contents.push(new LogLine(location, message));
+    }
+
+    // start a group of log messages
+    logGroup(title: string) : Log {
+        const stack : string[] = get_stack();
+        const location = get_location(stack);
+        const logManager = get_log_manager(stack);
+        const log = new Log(title);
+        logManager.current!.contents.push(new LogLine(location, log));
+        logManager.stack.push(log);
+        logManager.current = log;
+        return log;
+    }
+
+    // end the current group, optionally adding information to the title
+    endLogGroup(suffix: string="") {
+        const stack : string[] = get_stack();
+        const logManager = get_log_manager(stack);
+        const log = logManager.current!;
+        log.title += suffix;
+        logManager.stack.pop();
+        logManager.current = logManager.stack[logManager.stack.length-1];
+    }
+
+    async asyncLog<R>(fn: Function, ...args: any[]) : Promise<LogResult<R>> {
+        let name = "__asynclog__" + String(s_logID++);
+        let tagged = tagged_function(name, fn, ...args);
+        let result = await tagged();
+        return new LogResult<R>(result, s_logMap.get(name)!.stack[0]);
+    }
+
+    getLog() : Log {
+        const stack : string[] = get_stack();
+        return get_log_manager(stack).stack[0];
+    }
+
+    printLog(sourceFolder: string = "", log: Log|null=null, indent = 0) {
+        if (!log) { log = this.getLog(); }
+        let maxLen = 60;
+        for(let line of log.contents) {
+            let out = "";
+            let start = " ".repeat(indent);
+            if (typeof line.line === "string") {
+                out = `${start}${line.line}`;
+                const spaces = " ".repeat(Math.max(4, maxLen - out.length));
+                console.log(out + spaces + console_grey("   ◀︎ " + line.location.replace(sourceFolder, "")));
+            } else {
+                out = `${start}${line.line.title} ▼`;
+                const spaces = " ".repeat(Math.max(4, maxLen - out.length));
+                console.log(out + spaces + console_grey("   ◀︎ " + line.location.replace(sourceFolder, "")));
+                this.printLog(sourceFolder, line.line, indent+2);
+            }
+        }
     }
 }
 
 export const fm = new FeatureManager();
 
 //------------------------------------------------------------------------------
-// Websockets
+// logging
+
+export class LogLine {
+    location: string = "";        // file:line:char
+    line: string|Log = "";        // message or sub-log
+    constructor(location: string, line: string|Log) { this.location = location; this.line = line; }
+}
+
+export class Log {
+    title: string = "";
+    contents: LogLine[] = [];
+    constructor(title: string) { this.title = title; }
+}
+
+export class LogManager {
+    current: Log|null = null;
+    stack: Log[] = [];
+    constructor(log: Log|null=null) { 
+        if (log) { this.current = log; this.stack = [log]; } 
+        else { this.current = new Log("main"); this.stack = [this.current]; }
+    }
+}
+
+export class LogResult<R> {
+    result: R;
+    log: Log;
+    constructor(result: R, log: Log) { this.result = result; this.log = log; }
+}
+
+const s_logMap = new Map<string, LogManager>();
+let s_logID = 0;
+const s_defaultLogManager = new LogManager();
+
+
+//------------------------------------------------------------------------------
+// internal
+
+function console_grey(str: string) : string { 
+    return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`; 
+}
+
+// gets the current stack as an array of lines
+function get_stack() : string[] {
+    let err = new Error();
+    let stack = err.stack!;
+    return stack.split("\n    at ").slice(2);
+}
+
+// given the stack as line-array, return source file/line of log call
+function get_location(stack: string[]) : string {
+    const index = stack.findIndex((line) => !line.includes("/fm.ts"));
+    if (index && index >= 0) {
+        return stack[index];
+    }
+    return "";
+}
+
+// given the stack as line-array, find the current async log manager, or default if none
+function get_log_manager(stack: string[]) : LogManager {
+    if (s_logMap.size > 0) {
+        const index = stack.findIndex((line) => line.includes("__asynclog__"));
+        if (index && index >= 0) {
+            const si = stack[index];
+            const end = si.indexOf(" ");
+            const name = si.substring(0, end);
+            return s_logMap.get(name)!;
+        }
+    }
+    return s_defaultLogManager;
+}
+
+// given a function and args, return a uniquely named async function that calls it
+function tagged_function(name: string, fn: Function, ...args: any[]) {
+    const logManager = new LogManager();
+    logManager.current!.title = fm.getFunctionName(fn) || "undefined";
+    s_logMap.set(name, logManager);
+    const dynamicFunction = async () => { 
+        const result = await fn(...args); 
+        return result;
+    }
+    Object.defineProperty(dynamicFunction, "name", { value: name });
+    return dynamicFunction;
+}
+
+// convert an arbitrary object or value to a string
+function stringify(arg: any) : string {
+    if (typeof arg === 'object') {
+        try { return JSON.stringify(arg, null, 2);}
+        catch (error) {}
+    }
+    return String(arg);
+}
 

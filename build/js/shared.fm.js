@@ -11,17 +11,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var _Logging_1, _AsyncLogging_1;
-import { _Feature, feature, def, replace, after, struct, make, fm } from "./fm.js";
+import { _Feature, feature, def, after, before, struct, make, fm } from "./fm.js";
 //-----------------------------------------------------------------------------
 // Logging
 let Log = class Log {
@@ -149,7 +140,7 @@ __decorate([
     def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", LogManager)
+    __metadata("design:returntype", Object)
 ], _Logging.prototype, "log_get_manager", null);
 __decorate([
     def,
@@ -163,111 +154,65 @@ _Logging = _Logging_1 = __decorate([
 //-----------------------------------------------------------------------------
 // AsyncLogging
 let LogResult = class LogResult {
-    constructor() {
-        this.result = undefined;
-        this.log = undefined;
-    }
+    constructor(result, log) { this.result = result; this.log = log; }
 };
 LogResult = __decorate([
-    struct
+    struct,
+    __metadata("design:paramtypes", [Object, Log])
 ], LogResult);
 export { LogResult };
-class AsyncLocalStorage {
-    constructor() {
-        this.map = new Map();
-        this.id = 0;
-    }
-    run(store, callback) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const id = ++this.id;
-            this.map.set(id, store);
-            try {
-                let result = callback();
-                if (result instanceof Promise) {
-                    result = yield result;
-                }
-                return result;
-            }
-            finally {
-                this.map.delete(id);
-            }
-        });
-    }
-    getStore() {
-        const id = this.id;
-        return this.map.get(id);
-    }
-}
 let _AsyncLogging = _AsyncLogging_1 = class _AsyncLogging extends _Logging {
-    log_async_run(fn, ...args) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const requestId = generateUUIDv4();
-            const context = { requestId, logManager: make(LogManager, {}) };
-            return _AsyncLogging_1.localStorage.run(context, () => __awaiter(this, void 0, void 0, function* () {
-                try {
-                    let result = yield fn(...args);
-                    return make(LogResult, { result: result, log: context.logManager.stack[0] });
-                }
-                catch (error) {
-                    return make(LogResult, { result: error, log: context.logManager.stack[0] });
-                }
-            }));
-        });
-    }
     log_get_manager() {
-        const store = _AsyncLogging_1.localStorage.getStore();
-        if (store) {
-            return store.logManager;
-        }
-        else {
-            return _Logging.defaultLogManager;
+        if (_AsyncLogging_1.logMap.size > 0) {
+            let err = new Error();
+            let stack = err.stack;
+            let index = stack.indexOf("__asynclog__");
+            if (index && index >= 0) {
+                let end = stack.indexOf(" ", index);
+                let name = stack.substring(index, end);
+                return _AsyncLogging_1.logMap.get(name);
+            }
         }
     }
-    generateUUIDv4() {
-        return `${randomHex(8)}-${randomHex(4)}-4${randomHex(3)}-${(8 + Math.floor(Math.random() * 4)).toString(16)}${randomHex(3)}-${randomHex(12)}`;
+    async async_log_function(fn, ...args) {
+        console.log("async_loc_function", fm.getFunctionName(fn));
+        let name = "__asynclog__" + String(_AsyncLogging_1.logID++);
+        let tagged = tagged_function(name, fn, ...args);
+        let result = await tagged();
+        return new LogResult(result, _AsyncLogging_1.logMap.get(name).stack[0]);
     }
-    randomHex(length) {
-        let result = '';
-        for (let i = 0; i < length; i++) {
-            result += randomHexDigit();
-        }
-        return result;
-    }
-    randomHexDigit() {
-        return Math.floor(Math.random() * 16).toString(16);
+    tagged_function(name, fn, ...args) {
+        const logManager = make(LogManager, {});
+        logManager.current.title = fm.getFunctionName(fn) || "undefined";
+        _AsyncLogging_1.logMap.set(name, logManager);
+        const dynamicFunction = async () => {
+            const result = await fn(...args);
+            return result;
+        };
+        Object.defineProperty(dynamicFunction, "name", { value: name });
+        return dynamicFunction;
     }
 };
-_AsyncLogging.localStorage = new AsyncLocalStorage();
+_AsyncLogging.logID = 0;
+_AsyncLogging.logMap = new Map();
+__decorate([
+    before,
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Object)
+], _AsyncLogging.prototype, "log_get_manager", null);
 __decorate([
     def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Function, Object]),
     __metadata("design:returntype", Promise)
-], _AsyncLogging.prototype, "log_async_run", null);
-__decorate([
-    replace,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", LogManager)
-], _AsyncLogging.prototype, "log_get_manager", null);
+], _AsyncLogging.prototype, "async_log_function", null);
 __decorate([
     def,
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String, Function, Object]),
     __metadata("design:returntype", void 0)
-], _AsyncLogging.prototype, "generateUUIDv4", null);
-__decorate([
-    def,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
-    __metadata("design:returntype", void 0)
-], _AsyncLogging.prototype, "randomHex", null);
-__decorate([
-    def,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], _AsyncLogging.prototype, "randomHexDigit", null);
+], _AsyncLogging.prototype, "tagged_function", null);
 _AsyncLogging = _AsyncLogging_1 = __decorate([
     feature
 ], _AsyncLogging);
@@ -275,15 +220,9 @@ _AsyncLogging = _AsyncLogging_1 = __decorate([
 // Run
 export const load_module = () => { };
 let _Shared = class _Shared extends _Feature {
-    startup() {
-        return __awaiter(this, void 0, void 0, function* () { });
-    }
-    run() {
-        return __awaiter(this, void 0, void 0, function* () { });
-    }
-    shutdown() {
-        return __awaiter(this, void 0, void 0, function* () { });
-    }
+    async startup() { }
+    async run() { }
+    async shutdown() { }
 };
 __decorate([
     def,
@@ -321,16 +260,14 @@ Device = __decorate([
 ], Device);
 export { Device };
 let _Device = class _Device extends _Feature {
-    stub() { return true; }
-    ping(d) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                return remote(d, stub)();
-            }
-            catch (e) {
-                return false;
-            }
-        });
+    stub() { log("inside stub, returning", true); return true; }
+    async ping(d) {
+        try {
+            return remote(d, stub)();
+        }
+        catch (e) {
+            return false;
+        }
     }
     remote(d, targetFunction) {
         let functionName = targetFunction.name;
@@ -339,38 +276,34 @@ let _Device = class _Device extends _Feature {
         }
         const paramNames = fm.getFunctionParams(functionName);
         return new Proxy(targetFunction, {
-            apply: function (target, thisArg, argumentsList) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    const params = {};
-                    paramNames.forEach((paramName, index) => {
-                        params[paramName] = argumentsList[index];
-                    });
-                    return rpc(d, functionName, params);
+            apply: async function (target, thisArg, argumentsList) {
+                const params = {};
+                paramNames.forEach((paramName, index) => {
+                    params[paramName] = argumentsList[index];
                 });
+                return rpc(d, functionName, params);
             }
         });
     }
     ;
-    rpc(d, functionName, params) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const response = yield fetch(`${d.url}:${d.port}/${functionName}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(params)
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const responseData = yield response.json();
-            const log = responseData.log;
-            if (log) {
-                log.title = `rpc.${functionName}`;
-                log_push(log);
-            }
-            return responseData.result;
+    async rpc(d, functionName, params) {
+        const response = await fetch(`${d.url}:${d.port}/${functionName}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(params)
         });
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const responseData = await response.json();
+        const log = responseData.log;
+        if (log) {
+            log.title = `rpc.${functionName}`;
+            log_push(log);
+        }
+        return responseData.result;
     }
 };
 __decorate([
@@ -403,16 +336,15 @@ _Device = __decorate([
 let _Greet = class _Greet extends _Shared {
     greet(name) {
         let result = `hello, ${name}!`;
+        console.log("inside greet", name);
         log("tickle it ya wrigglers");
         return result;
     }
-    run() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const server = make(Device, { url: "http://localhost", port: 8000 });
-            log(greet("asnaroo"));
-            const msg = yield remote(server, greet)("asnaroo");
-            log("server:", msg);
-        });
+    async run() {
+        const server = make(Device, { url: "http://localhost", port: 8000 });
+        log(greet("asnaroo"));
+        const msg = await remote(server, greet)("asnaroo");
+        log("server:", msg);
     }
 };
 __decorate([

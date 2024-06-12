@@ -58,7 +58,7 @@ Alpha = __decorate([
 ], Alpha);
 let _AlphaColour = class _AlphaColour extends _Colour {
     add_colours(c1, c2) {
-        return Object.assign(Object.assign({}, this.existing(add_colours)(c1, c2)), { a: c1.a + c2.a });
+        return { ...this.existing(add_colours)(c1, c2), a: c1.a + c2.a };
     }
 };
 __decorate([

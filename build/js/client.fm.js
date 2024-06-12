@@ -11,15 +11,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var _Offline_1;
 import { _Feature, feature, def, on, after, make, } from "./fm.js";
 import * as shared from './shared.fm.js';
@@ -27,19 +18,15 @@ import * as browser from './util/browser.js';
 import { Device } from './shared.fm.js';
 addEventListener("load", () => { client(); });
 let _Client = class _Client extends _Feature {
-    client() {
-        return __awaiter(this, void 0, void 0, function* () {
-            log("ᕦ(ツ)ᕤ client.fm");
-            shared.load_module();
-            yield startup();
-            yield run();
-            yield shutdown();
-            log("done.");
-        });
+    async client() {
+        log("ᕦ(ツ)ᕤ client.fm");
+        shared.load_module();
+        await startup();
+        await run();
+        await shutdown();
+        log("done.");
     }
-    shutdown() {
-        return __awaiter(this, void 0, void 0, function* () { });
-    }
+    async shutdown() { }
 };
 _Client.server = make(Device, { url: "http://localhost", port: 8000 });
 __decorate([
@@ -58,31 +45,25 @@ _Client = __decorate([
     feature
 ], _Client);
 let _Offline = _Offline_1 = class _Offline extends _Client {
-    startup() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return setup_offline();
-        });
+    async startup() {
+        return setup_offline();
     }
-    check_online() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let online = yield ping(_Offline_1.server);
-            _Offline_1.offline = !online;
-            if (online)
-                log("connected");
-            else
-                log("offline");
-        });
+    async check_online() {
+        let online = await ping(_Offline_1.server);
+        _Offline_1.offline = !online;
+        if (online)
+            log("connected");
+        else
+            log("offline");
     }
-    setup_offline() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let msg = yield browser.setupServiceWorker();
-            if (msg == "success") {
-                return check_online();
-            }
-            else {
-                console.log(msg);
-            }
-        });
+    async setup_offline() {
+        let msg = await browser.setupServiceWorker();
+        if (msg == "success") {
+            return check_online();
+        }
+        else {
+            console.log(msg);
+        }
     }
 };
 _Offline.offline = false;
