@@ -30,6 +30,7 @@ class MetaFeature {
     parent: MetaFeature | null = null;          // feature we extend
     children: MetaFeature[] = [];               // all features that extend this feature
     enabled: boolean = true;                    // whether this feature is enabled (and children)
+    logging: boolean = true;                   // if set, log all calls within this feature
     static _all : MetaFeature[] = [];           // all features in declaration order
     static _byname : { [name: string]: MetaFeature } = {}; // map feature name to MetaFeature
 
@@ -78,6 +79,7 @@ class MetaFunction {
     isAsync: boolean;           // true if the function is async
     returnsValue: boolean;      // true if we return something other than void
     params: string[] = [];      // parameter names  
+    logging: boolean = true;    // logging enabled by default
 
     static _byName: { [name: string]: MetaFunction } = {};
     constructor(name: string, method: Function, decorator: string) {
@@ -116,6 +118,14 @@ export function feature<T extends { new (...args: any[]): {} }>(constructor: T) 
     const instance = new constructor();
     mf.initialise(superClassName, instance as _Feature);
     fm.buildFeature(mf);
+}
+
+// @nolog decorator handler
+export function nolog<T extends { new (...args: any[]): {} }>(constructor: T) {
+    const className = constructor.name;
+    const mf = MetaFeature._findOrCreate(className);
+    if (mf) { mf.logging = false; }
+    console.log("turned off logging for", className);
 }
 
 // @def decorator handler
@@ -157,7 +167,6 @@ export function before(target: any, propertyKey: string, descriptor: PropertyDes
     const mf = MetaFeature._findOrCreate(className);
     mf.addFunction(new MetaFunction(propertyKey, method, "before"));
 }
-
 
 //------------------------------------------------------------------------------
 // structure extension using Proxy and class trickery
@@ -271,6 +280,17 @@ function listParams(func: Function): string[] {
 }
 
 //------------------------------------------------------------------------------
+// this is super annoying, but it's the only way to call logging functions here
+declare class LogLine { location: string; line: string|Log; }
+declare class Log { title: string; contents: LogLine[]; }
+declare class LogResult<R> { result: R | undefined; log: Log | undefined; }
+
+declare const log_group : (title: string) => Log;
+declare const log_end_group : (suffix?: string) => void;
+declare const log_async : <R>(fn: Function, ...args: any[]) => Promise<LogResult<R>>;
+declare const log_push : (log: Log|undefined, toLog: Log) => void;
+
+//------------------------------------------------------------------------------
 // Feature Manager
 
 export class FeatureManager {
@@ -323,7 +343,7 @@ export class FeatureManager {
         for(let mfn of mf.functions) { 
             let newFunction = this.buildFunction(mf, mfn);
             Object.defineProperty(newFunction, "name", { value: mfn.name });
-            if (this.isDebugging) {
+            if (this.isDebugging && mf.logging) {
                 newFunction = this.logFunction(mf, mfn, newFunction);
             }
             this.replaceModuleScopeFunction(mfn.name, newFunction);
@@ -334,17 +354,17 @@ export class FeatureManager {
     logFunction(mf: MetaFeature, mfn: MetaFunction, func: Function) : Function {
         if (mfn.isAsync) {
             return async function (...args: any[]) {
-                let log = fm.logGroup(mfn.name);
-                const result = await fm.asyncLog(func, ...args);
-                log.contents.push(new LogLine("", result.log));
-                fm.endLogGroup();
+                let parentLog = log_group(mfn.name);
+                const result = await log_async(func, ...args);
+                log_push(result.log, parentLog);
+                log_end_group();
                 return result.result;
             };
         } else {
             return function (...args: any[]) {
-                fm.logGroup(mfn.name);
+                log_group(mfn.name);
                 const result = func(...args);
-                fm.endLogGroup();
+                log_end_group();
                 return result;
             };
         }
@@ -484,166 +504,6 @@ export class FeatureManager {
     getFunctionParams(name: string) : string[] {
         return MetaFunction._byName[name].params;
     }
-
-    //-------------------------------------------------------------------------
-    // logging
-
-    // simple output message, tagged with source file and line
-    log(...args: any[]) {
-        const message = args.map(arg => stringify(arg)).join(' ');
-        const stack : string[] = get_stack();
-        const location = get_location(stack);
-        const logManager = get_log_manager(stack);
-        logManager.current!.contents.push(new LogLine(location, message));
-    }
-
-    // start a group of log messages
-    logGroup(title: string) : Log {
-        const stack : string[] = get_stack();
-        const location = get_location(stack);
-        const logManager = get_log_manager(stack);
-        const log = new Log(title);
-        logManager.current!.contents.push(new LogLine(location, log));
-        logManager.stack.push(log);
-        logManager.current = log;
-        return log;
-    }
-
-    // end the current group, optionally adding information to the title
-    endLogGroup(suffix: string="") {
-        const stack : string[] = get_stack();
-        const logManager = get_log_manager(stack);
-        const log = logManager.current!;
-        log.title += suffix;
-        logManager.stack.pop();
-        logManager.current = logManager.stack[logManager.stack.length-1];
-    }
-
-    async asyncLog<R>(fn: Function, ...args: any[]) : Promise<LogResult<R>> {
-        let name = "__asynclog__" + String(s_logID++);
-        let tagged = tagged_function(name, fn, ...args);
-        let result = await tagged();
-        return new LogResult<R>(result, s_logMap.get(name)!.stack[0]);
-    }
-
-    getLog() : Log {
-        const stack : string[] = get_stack();
-        return get_log_manager(stack).stack[0];
-    }
-
-    printLog(sourceFolder: string = "", log: Log|null=null, indent = 0) {
-        if (!log) { log = this.getLog(); }
-        let maxLen = 60;
-        for(let line of log.contents) {
-            let out = "";
-            let start = " ".repeat(indent);
-            if (typeof line.line === "string") {
-                out = `${start}${line.line}`;
-                const spaces = " ".repeat(Math.max(4, maxLen - out.length));
-                console.log(out + spaces + console_grey("   ◀︎ " + line.location.replace(sourceFolder, "")));
-            } else {
-                out = `${start}${line.line.title} ▼`;
-                const spaces = " ".repeat(Math.max(4, maxLen - out.length));
-                console.log(out + spaces + console_grey("   ◀︎ " + line.location.replace(sourceFolder, "")));
-                this.printLog(sourceFolder, line.line, indent+2);
-            }
-        }
-    }
 }
 
 export const fm = new FeatureManager();
-
-//------------------------------------------------------------------------------
-// logging
-
-export class LogLine {
-    location: string = "";        // file:line:char
-    line: string|Log = "";        // message or sub-log
-    constructor(location: string, line: string|Log) { this.location = location; this.line = line; }
-}
-
-export class Log {
-    title: string = "";
-    contents: LogLine[] = [];
-    constructor(title: string) { this.title = title; }
-}
-
-export class LogManager {
-    current: Log|null = null;
-    stack: Log[] = [];
-    constructor(log: Log|null=null) { 
-        if (log) { this.current = log; this.stack = [log]; } 
-        else { this.current = new Log("main"); this.stack = [this.current]; }
-    }
-}
-
-export class LogResult<R> {
-    result: R;
-    log: Log;
-    constructor(result: R, log: Log) { this.result = result; this.log = log; }
-}
-
-const s_logMap = new Map<string, LogManager>();
-let s_logID = 0;
-const s_defaultLogManager = new LogManager();
-
-
-//------------------------------------------------------------------------------
-// internal
-
-function console_grey(str: string) : string { 
-    return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`; 
-}
-
-// gets the current stack as an array of lines
-function get_stack() : string[] {
-    let err = new Error();
-    let stack = err.stack!;
-    return stack.split("\n    at ").slice(2);
-}
-
-// given the stack as line-array, return source file/line of log call
-function get_location(stack: string[]) : string {
-    const index = stack.findIndex((line) => !line.includes("/fm.ts"));
-    if (index && index >= 0) {
-        return stack[index];
-    }
-    return "";
-}
-
-// given the stack as line-array, find the current async log manager, or default if none
-function get_log_manager(stack: string[]) : LogManager {
-    if (s_logMap.size > 0) {
-        const index = stack.findIndex((line) => line.includes("__asynclog__"));
-        if (index && index >= 0) {
-            const si = stack[index];
-            const end = si.indexOf(" ");
-            const name = si.substring(0, end);
-            return s_logMap.get(name)!;
-        }
-    }
-    return s_defaultLogManager;
-}
-
-// given a function and args, return a uniquely named async function that calls it
-function tagged_function(name: string, fn: Function, ...args: any[]) {
-    const logManager = new LogManager();
-    logManager.current!.title = fm.getFunctionName(fn) || "undefined";
-    s_logMap.set(name, logManager);
-    const dynamicFunction = async () => { 
-        const result = await fn(...args); 
-        return result;
-    }
-    Object.defineProperty(dynamicFunction, "name", { value: name });
-    return dynamicFunction;
-}
-
-// convert an arbitrary object or value to a string
-function stringify(arg: any) : string {
-    if (typeof arg === 'object') {
-        try { return JSON.stringify(arg, null, 2);}
-        catch (error) {}
-    }
-    return String(arg);
-}
-

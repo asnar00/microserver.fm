@@ -9,8 +9,11 @@ import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
 // declarations from shared
+
+declare class LogLine { location: string; line: string|Log; }
+declare class Log { title: string; contents: LogLine[]; }
 declare const log: (...args: any[]) => void;
-declare const async_log_function : <R>(fn: Function, ...args: any[]) => shared.LogResult<R>;
+export declare const log_print : (sourceFolder: string, log: Log, indent: number) => void;
 
 //------------------------------------------------------------------------------
 // Main doesn't do much
@@ -155,21 +158,21 @@ fm.readout();
 fm.listModuleScopeFunctions();
 fm.debug(true);
 console.log("--------------------------------------------------------------------------------");
-//server();
+
 
 declare const test_log : () => void;
 declare const sub_func : () => void;
 
 @feature class _TestLog extends _Main {
     @def test_log() {
-        fm.log("this is a message to console");
+        log("this is a message to console");
         sub_func();
     }
     @def sub_func() {
-        fm.log("this is a message to console from sub_func");
+        log("this is a message to console from sub_func");
     }
 }
 
-fm.log("about to call test_log");
+log("about to call test_log");
 test_log();
-fm.printLog();
+log_print();

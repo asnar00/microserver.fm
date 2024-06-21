@@ -1,5 +1,32 @@
 # scribbles
 
+logging sotu: we have it working, but the test needs to also do async properly.
+So we need something that counts down, I think.
+
+Move it to featureland first, I think.
+
+------------------------------------------------------------------------
+
+returning to work:
+
+- fm.ts is the right path forward. 
+- end goal is machine translation to zero.
+- initially, login (vault) and then IDE
+- IDE is just zerp + feature explorer
+
+where we are:
+
+- logging is working in RPC. bit more work to test mt then done
+- testing framework is important; not serious unless we have that
+
+so I think next is testing. cool!
+
+strategic:
+
+- hire dominic to help write the compiler; +1 junior (he finds/manages)
+
+
+-------------------------------------------------------------------------
 What you want is:
 I'm calling A and B in parallel, I want some kind of indication of that in the log tree. 
 
