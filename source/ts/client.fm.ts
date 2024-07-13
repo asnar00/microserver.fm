@@ -14,11 +14,6 @@ addEventListener("load", () => { client(); });
 // declarations from shared module. todo: find a way to automate this. later.
 // note: by convention, we can extend shared stuff, but shared can't extend client stuff.
 
-declare const log: (...args: any[]) => void;
-declare const log_group: (title: string) => void;
-declare const log_end_group: () => void;
-declare const log_output: () => void;
-declare const stub: () => boolean;
 declare const ping: (device: Device) => Promise<boolean>;
 declare const startup : () => Promise<void>;
 declare const run : () => Promise<void>;
@@ -35,6 +30,7 @@ declare const my_test: () => Promise<void>;
     @def async client() { 
         log("ᕦ(ツ)ᕤ client.fm");
         shared.load_module();
+        await fm.test();
         await startup();
         await run();
         await shutdown();

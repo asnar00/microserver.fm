@@ -8,46 +8,29 @@ import { _Feature, feature, def, replace, on, after, before, fm } from "./util/f
 import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
-// declarations from shared
-
-declare class LogLine { location: string; line: string|Log; }
-declare class Log { title: string; contents: LogLine[]; }
-declare const log: (...args: any[]) => void;
-export declare const log_print : (sourceFolder: string, log: Log, indent: number) => void;
-
-//------------------------------------------------------------------------------
-// Main doesn't do much
-
-declare const server: () => Promise<void>;
-
-@feature class _Main extends _Feature {
-    @def async server() { log("ᕦ(ツ)ᕤ server.fm"); shared.load_module(); }
-}
-
-//------------------------------------------------------------------------------
 // Server listens on port 8000 but only returns "not found" for now
 
 declare const not_found: () => Promise<Response>;
-declare const handle: (req: Request) => Promise<Response|undefined>;
+declare const handle_request: (req: Request) => Promise<Response|undefined>;
 declare const receive_request: (req: Request) => Promise<Response>;
 declare const start_server: () => Promise<void>;
 
-@feature class _Server extends _Main {
+@feature class _Server extends _Feature {
     @def async not_found() : Promise<Response> {
         log("not_found!");
         return new Response("Not found", { status: 404 });
     }
-    @def async handle(req: Request): Promise<Response|undefined> {
+    @def async handle_request(req: Request): Promise<Response|undefined> {
         return not_found();
     }
     @def async receive_request(req: Request): Promise<Response|undefined> {
         log(req.method, req.url);
-        return handle(req);
+        return handle_request(req);
     }
     @def async start_server() {
         os.serve(receive_request, { port: 8000 });
     }
-    @after async server() {
+    @def async server() {
         start_server();
     }
 }
@@ -64,7 +47,7 @@ declare const mime_type: (path: string) => string;
     static publicFolder: string = os.cwd().replaceAll("/source/ts", "/public");
     static rootFolder: string = os.cwd().replaceAll("/source/ts", "/");
 
-    @before async handle(req: Request): Promise<Response|undefined> {
+    @before async handle_request(req: Request): Promise<Response|undefined> {
         if (req.method === "GET") {
             return serve_file(req);
         }
@@ -128,14 +111,14 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
             console.log("calling:", functionName, "with", params);
-            const logResult = await async_log_function(func, ...Object.values(params));
+            const logResult = await log_async(func, ...Object.values(params));
             const response = { result: logResult.result, log: logResult.log };
             return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {
             return not_found();
         }
     }
-    @before async handle(req: Request): Promise<Response|undefined> {
+    @before async handle_request(req: Request): Promise<Response|undefined> {
         if (req.method === "PUT") {
             return call_function(req);
         }
@@ -154,25 +137,17 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
     }
 }
 
-fm.readout();
-fm.listModuleScopeFunctions();
-fm.debug(true);
 console.log("--------------------------------------------------------------------------------");
+console.log("ᕦ(ツ)ᕤ server.fm"); 
+shared.load_module(); 
+fm.readout(true);
+fm.debug(true);
+console.log("----------------------------------------------");
+await fm.test();
+fm.log_print("file:///Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/");
+fm.log_flush();
+console.log("----------------------------------------------");
+fm.log("what the hell");
+fm.log_print("file:///Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/");
 
 
-declare const test_log : () => void;
-declare const sub_func : () => void;
-
-@feature class _TestLog extends _Main {
-    @def test_log() {
-        log("this is a message to console");
-        sub_func();
-    }
-    @def sub_func() {
-        log("this is a message to console from sub_func");
-    }
-}
-
-log("about to call test_log");
-test_log();
-log_print();

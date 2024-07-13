@@ -11,7 +11,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { _Feature, feature, on, after } from "../fm.js";
+import { _Feature, feature, on, after } from "../util/fm.js";
 let _Main = class _Main extends _Feature {
     test() { }
     main() { console.log("ᕦ(ツ)ᕤ"); }

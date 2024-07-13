@@ -10,7 +10,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { _Feature, feature, on, struct, extend, make } from "../fm.js";
+import { _Feature, feature, on, struct, extend, make } from "../util/fm.js";
 // -----------------------------------------------------------------------------
 let Colour = class Colour {
     constructor() {

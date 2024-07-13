@@ -4,10 +4,56 @@
 // feature-modular typescript
 
 //------------------------------------------------------------------------------
+// logging
+
+//-----------------------------------------------------------------------------
+// _Logging does recursive and async-friendly logging
+
+// a single line within a log, but can also point to a sub-log
+class LogLine {
+    location: string = "";        // func (file:line:char)
+    line: string|Log = "";        // message or sub-log
+    constructor(location: string, logLine: string|Log) { 
+        this.location = location; 
+        this.line = logLine; 
+    }
+}
+
+// a log is a collection of log lines
+class Log {
+    title: string = "";
+    contents: LogLine[] = [];
+    constructor(title: string) { this.title = title; }
+}
+
+// holds the current log and stack of logs
+class LogManager {
+    current: Log|null = null;
+    stack: Log[] = [];
+    constructor(log: Log|null=null) { 
+        if (log) { this.current = log; this.stack = [log]; } 
+        else { this.current = new Log("main"); this.stack = [this.current]; }
+    }
+}
+
+// combines the result of a function with its log
+class LogResult<R> {
+    result: R | undefined;
+    log: Log | undefined;
+    constructor(result: R|undefined=undefined, log: Log|undefined=undefined) {
+        this.result = result;
+        this.log = log;
+    }
+}
+
+//------------------------------------------------------------------------------
 // base class of all feature clauses
 
 export class _Feature {
-    test() {}
+    async _test() : Promise<boolean> { 
+        fm.log("hello from _Feature.test()");
+        return true; 
+    }
     existing(fn: Function) {
         let name = functionNames.get(fn);
         if (name) {
@@ -30,7 +76,7 @@ class MetaFeature {
     parent: MetaFeature | null = null;          // feature we extend
     children: MetaFeature[] = [];               // all features that extend this feature
     enabled: boolean = true;                    // whether this feature is enabled (and children)
-    logging: boolean = true;                   // if set, log all calls within this feature
+    logging: boolean = true;                    // if set, log all calls within this feature
     static _all : MetaFeature[] = [];           // all features in declaration order
     static _byname : { [name: string]: MetaFeature } = {}; // map feature name to MetaFeature
 
@@ -125,7 +171,6 @@ export function nolog<T extends { new (...args: any[]): {} }>(constructor: T) {
     const className = constructor.name;
     const mf = MetaFeature._findOrCreate(className);
     if (mf) { mf.logging = false; }
-    console.log("turned off logging for", className);
 }
 
 // @def decorator handler
@@ -280,17 +325,6 @@ function listParams(func: Function): string[] {
 }
 
 //------------------------------------------------------------------------------
-// this is super annoying, but it's the only way to call logging functions here
-declare class LogLine { location: string; line: string|Log; }
-declare class Log { title: string; contents: LogLine[]; }
-declare class LogResult<R> { result: R | undefined; log: Log | undefined; }
-
-declare const log_group : (title: string) => Log;
-declare const log_end_group : (suffix?: string) => void;
-declare const log_async : <R>(fn: Function, ...args: any[]) => Promise<LogResult<R>>;
-declare const log_push : (log: Log|undefined, toLog: Log) => void;
-
-//------------------------------------------------------------------------------
 // Feature Manager
 
 export class FeatureManager {
@@ -309,18 +343,34 @@ export class FeatureManager {
     }
 
     // output current feature tree to console
-    readout(mf: MetaFeature|null=null, indent=0) {
+    readout(showFunctions: boolean =false, mf: MetaFeature|null=null, indent=0) {
         if (!mf) {  
             mf = MetaFeature._byname["_Feature"]; 
             console.log("Defined features:");
         }
         if (mf.isEnabled()) {
-            console.log(`${" ".repeat(indent)}${mf.name}`);
+            let fnList = showFunctions ? mf.functions.map(f => (f.decorator!="def" ? "+" : "") + f.name).join(" ") : "";
+            console.log(`${" ".repeat(indent)}${mf.name} ${fm.console_grey(fnList)}`);
             for (let c of mf.children) {
-                this.readout(c, indent+2);
+                this.readout(showFunctions, c, indent+2);
             }
         } else {
             console.log(mf.name, "(disabled)");
+        }
+    }
+
+    async test(mf: MetaFeature|null = null) {
+        if (!mf) { mf = MetaFeature._byname["_Feature"]; }
+        if (mf.isEnabled()) {
+            if (mf.instance) {
+                const parentInstance = mf.parent ? mf.parent.instance : null;
+                if (!parentInstance || this.isMethodOverridden(mf.instance, "_test")) {
+                    await mf.instance._test();
+                }
+            }
+            for (let c of mf.children) {
+                await this.test(c);
+            }
         }
     }
 
@@ -352,19 +402,20 @@ export class FeatureManager {
 
     // returns a function wrapping the original function with logging calls
     logFunction(mf: MetaFeature, mfn: MetaFunction, func: Function) : Function {
+        const name = `${mf.name}.${mfn.name}`;
         if (mfn.isAsync) {
             return async function (...args: any[]) {
-                let parentLog = log_group(mfn.name);
-                const result = await log_async(func, ...args);
-                log_push(result.log, parentLog);
-                log_end_group();
+                let parentLog = fm.log_group(name);
+                const result = await fm.log_async(func, ...args);
+                fm.log_push(result.log, parentLog);
+                fm.log_end_group();
                 return result.result;
             };
         } else {
             return function (...args: any[]) {
-                log_group(mfn.name);
+                fm.log_group(name);
                 const result = func(...args);
-                log_end_group();
+                fm.log_end_group();
                 return result;
             };
         }
@@ -384,7 +435,7 @@ export class FeatureManager {
     buildDefFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
         if (originalFunction) {  
-            throw new Error(`${mf.name}.def: ${mfn.name} already exists`); 
+            throw new Error(`${mf.name}.def: '${mfn.name}' already exists`); 
         }
         const boundMethod = mfn.method.bind(mf.instance);
         return boundMethod;
@@ -393,7 +444,7 @@ export class FeatureManager {
     // build a function that replaces an existing function with a new one
     buildReplaceFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
-        if (!originalFunction) { throw new Error(`${mf.name}.replace: ${mfn.name} not found`); }
+        if (!originalFunction) { throw new Error(`${mf.name}.replace: '${mfn.name}' not found`); }
         const boundMethod = mfn.method.bind(mf.instance);
         return boundMethod;
     }
@@ -403,7 +454,7 @@ export class FeatureManager {
         const boundMethod = mfn.method.bind(mf.instance);
         const originalFunction = functionRegistry[mfn.name];
         if (!originalFunction) return boundMethod;
-        if (!mfn.isAsync) { throw new Error(`${mf.name}.on: ${mfn.name} must be async`); }
+        if (!mfn.isAsync) { throw new Error(`${mf.name}.on: '${mfn.name}' must be async`); }
         return async function(...args: any[]) {
             return Promise.all([originalFunction(...args), boundMethod(...args)]);
         };
@@ -412,9 +463,9 @@ export class FeatureManager {
     // build a function that calls the new function after the original
     buildAfterFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
-        if (!originalFunction) { throw new Error(`${mf.name}.after: ${mfn.name} not found`); }
+        if (!originalFunction) { throw new Error(`${mf.name}.after: '${mfn.name}' not found`); }
         if (mfn.isAsync) {
-            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mf.name}.before: ${mfn.name} must be async`); }
+            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mf.name}.before: '${mfn.name}' must be async`); }
             const newFunction = async function (...args: any[]) {
                 let _result = await originalFunction(...args);
                 return mfn.method.apply(mf.instance, [...args, _result]);
@@ -432,9 +483,9 @@ export class FeatureManager {
     // build a function that calls the new function before the original
     buildBeforeFunction(mf: MetaFeature, mfn: MetaFunction) : Function {
         const originalFunction = functionRegistry[mfn.name];
-        if (!originalFunction) { throw new Error(`${mf.name}.before: ${mfn.name} not found`); }
+        if (!originalFunction) { throw new Error(`${mf.name}.before: '${mfn.name}' not found`); }
         if (mfn.isAsync) {
-            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mf.name}.before: ${mfn.name} must be async`); }
+            if (!isAsyncFunction(mfn.method)) { throw new Error(`${mf.name}.before: '${mfn.name}' must be async`); }
             const newFunction =  async function (...args: any[]) {
                 const newResult = await mfn.method.apply(mf.instance, args);
                 if (newResult !== undefined) { return newResult; }
@@ -450,6 +501,159 @@ export class FeatureManager {
             return newFunction;
         }
     }
+
+    //-------------------------------------------------------------------------
+    // logging
+
+    static logMap = new Map<string, LogManager>();
+    static logID = 0;
+    static defaultLogManager = new LogManager();
+
+    // simple output message, tagged with source file and line
+    log(...args: any[]) {
+        const message = args.map(arg => this.stringify(arg)).join(' ');
+        const stack : string[] = this.get_stack();
+        const location = this.get_location(stack);
+        const logManager = this.get_log_manager(stack);
+        logManager.current!.contents.push(new LogLine(location, message));
+    }
+
+    // start a group of log messages
+    log_group(title: string) : Log {
+        const stack : string[] = this.get_stack();
+        const logManager = this.get_log_manager(stack);
+        const log = new Log(title);
+        this.log_push(log, logManager.current!, this.get_location(stack));
+        logManager.stack.push(log);
+        logManager.current = log;
+        return log;
+    }
+
+    // end the current group, optionally adding information to the title
+    log_end_group(suffix: string="") {
+        const stack : string[] = this.get_stack();
+        const logManager = this.get_log_manager(stack);
+        const log = logManager.current!;
+        log.title += suffix;
+        logManager.stack.pop();
+        logManager.current = logManager.stack[logManager.stack.length-1];
+    }
+
+    // run an async function, returning result and log generated
+    async log_async<R>(fn: Function, ...args: any[]) : Promise<LogResult<R>> {
+        let name = "__asynclog__" + String(FeatureManager.logID++);
+        let tagged = this.tagged_function(name, fn, ...args);
+        let result = await tagged();
+        let lr = new LogResult<R>();
+        lr.result = result; lr.log = FeatureManager.logMap.get(name)!.stack[0];
+        return lr;
+    }
+
+    // print 
+    log_print(sourceFolder: string = "", log: Log|null=null, indent = 0) {
+        if (!log) { log = this.log_get(); }
+        let maxLen = 60;
+        for(let line of log!.contents) {
+            const start = " ".repeat(indent);
+            let out = ((typeof line.line === "string") ? `${start}${line.line}` : `${start}${line.line.title} ▼`);
+            const location = line.location.replace(sourceFolder, "");
+            if (location != "") {
+                out += " ".repeat(Math.max(4, maxLen - out.length));
+                out += this.console_grey("   ◀︎ " + location);
+            }
+            console.log(out);
+            if (typeof line.line !== "string") {
+                this.log_print(sourceFolder, line.line, indent+2);
+            }
+        }
+    }
+
+    // flush
+    log_flush() {
+        FeatureManager.logMap.clear();
+        FeatureManager.logID = 0;
+        FeatureManager.defaultLogManager = new LogManager();
+    }
+
+    //-------------------------------------------------------------------------
+    // internal logging functions
+
+    // push a log to a parent log
+    log_push(log: Log|undefined, toLog: Log, location: string ="") {
+        if (log) {
+            const line = new LogLine(location, log);
+            toLog.contents.push(line);
+        }
+    }
+
+    // get the current log from the stack
+    log_get() : Log {
+        const stack : string[] = this.get_stack();
+        return this.get_log_manager(stack).stack[0];
+    }
+
+    // color a string grey (when sent to console.log)
+    console_grey(str: string) : string { 
+        return `\x1b[48;5;234m\x1b[30m${str}\x1b[0m`; 
+    }
+
+    // gets the current stack as an array of lines
+    get_stack() : string[] {
+        let err = new Error();
+        let stack = err.stack!;
+        let result= stack.split("\n    at ").slice(3);
+        return result;
+    }
+
+    // given the stack as line-array, return source file/line of log call
+    get_location(stack: string[]) : string {
+        let index = stack.findIndex((line) => !(line.includes("/fm.ts") || line.includes("__asynclog__") || line.includes("_Logging.")));
+        if (index >= 0 && index < stack.length) { return stack[index]; }
+        return "";
+    }
+
+    // given the stack as line-array, find the current async log manager, or default if none
+    get_log_manager(stack: string[]) : LogManager {
+        if (FeatureManager.logMap.size > 0) {
+            const index = stack.findIndex((line) => line.includes("__asynclog__"));
+            if (index && index >= 0) {
+                const si = stack[index];
+                const start = si.indexOf("__asynclog__");
+                const end = si.indexOf(" ", start);
+                const name = si.substring(start, end);
+                const result = FeatureManager.logMap.get(name)!;
+                if (result === undefined) { 
+                    console.log("undefined log manager", name); 
+                    console.log(stack);
+                }
+                return result;
+            }
+        }
+        return FeatureManager.defaultLogManager;
+    }
+
+    // given a function and args, return a uniquely named async function that calls it
+    tagged_function(name: string, fn: Function, ...args: any[]) {
+        const logManager = new LogManager();
+        logManager.current!.title = fm.getFunctionName(fn) || "undefined";
+        FeatureManager.logMap.set(name, logManager);
+        const dynamicFunction = async () => { 
+            const result = await fn(...args); 
+            return result;
+        }
+        Object.defineProperty(dynamicFunction, "name", { value: name });
+        return dynamicFunction;
+    }
+
+    // convert an arbitrary object or value to a string
+    stringify(arg: any) : string {
+        if (typeof arg === 'object') {
+            try { return JSON.stringify(arg, null, 2);}
+            catch (error) {}
+        }
+        return String(arg);
+    }
+
 
     //-------------------------------------------------------------------------
     // low-level function management in module (=global) scope
@@ -504,6 +708,21 @@ export class FeatureManager {
     getFunctionParams(name: string) : string[] {
         return MetaFunction._byName[name].params;
     }
+
+    isMethodOverridden(instance: any, methodName: string): boolean {
+        const proto = Object.getPrototypeOf(instance); // Get the prototype of the instance
+        const parentProto = Object.getPrototypeOf(proto); // Get the prototype of the superclass
+    
+        // Ensure the method exists in the subclass and superclass
+        if (!proto || !parentProto) return false;
+    
+        const subclassMethod = proto.constructor.prototype[methodName];
+        const superclassMethod = parentProto.constructor.prototype[methodName];
+    
+        // Check if the method in the subclass and superclass are the same function
+        return subclassMethod !== superclassMethod;
+    }
 }
 
 export const fm = new FeatureManager();
+

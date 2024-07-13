@@ -12,7 +12,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var _Offline_1;
-import { _Feature, feature, def, on, after, make, } from "./fm.js";
+import { _Feature, feature, def, on, after, make, fm, } from "./util/fm.js";
 import * as shared from './shared.fm.js';
 import * as browser from './util/browser.js';
 import { Device } from './shared.fm.js';
@@ -21,6 +21,7 @@ let _Client = class _Client extends _Feature {
     async client() {
         log("ᕦ(ツ)ᕤ client.fm");
         shared.load_module();
+        await fm.test();
         await startup();
         await run();
         await shutdown();

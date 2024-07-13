@@ -1,9 +1,187 @@
 # scribbles
 
-logging sotu: we have it working, but the test needs to also do async properly.
-So we need something that counts down, I think.
+Woke up this morning definitely feeling like I want to write the .md pipeline,
+convert "fm.ts" to straight .ts, and feed back errors using a zerp-like workflow.
+Of course, until the web editor is working, the workflow is awful.
+So it's a chicken-and-egg type issue. Maybe therefore it's better to plough forward
+with this workflow until zerp is working, and then use LLMs to transform the code somehow?
 
-Move it to featureland first, I think.
+I mean that's the obvious thing.
+
+Also however I'm not sure that deno's the totally right choice for this.
+But let's plough on, right? The next thing is testing.
+
+testing is not going to be a normal thing; it's meta, for sure.
+as is logging. I think we just note down that "testing, logging and other meta-features live in their own space".
+
+So should we just do fm.log(...)? I think that's sensible.
+
+Same with testing: we should just do fm.test
+
+These are not client code, these are workflow things, so let's put them in fm.ts.
+That makes the most sense.
+
+----------------------------------------------------------------
+magpie stuff: 
+beat detection: https://github.com/dodiku/AudioOwl
+
+interface is: drop new track in, find beat, first-beat
+real simple hummingbird sequencer: number key plus up/down arrow, enter to go to it
+space to switch between loop/forward
+
+stem-separation extracts the data just for the current loop, then continues in background.
+so you get the stems for your current loop pretty much immediately.
+and then it's basically just hummingbird mixing, but with the stems you choose.
+
+something like this anyway.
+
+----------------------------------------------------------------
+fm.any
+
+concept: write literate feature-modular code in .md files;
+generate output code in any language (including for polyglot projects)
+
+Input:
+
+    feature XYZ extends ABC
+        on blah
+            blahblah
+        after blah
+            blahblah
+
+Output:
+
+    standard typescript/python/cpp/whatever.
+
+I mean, this would be crazy cool, would it not? No reliance on decorators, just write code, voila.
+Logging everything working properly, I like the sound of that, and it's just typescript code running in deno.
+
+Maybe that would be cool to do. Just write fm.md, you get typescript
+
+```ts
+feature MyFeature extends AnotherFeature {
+    def myFunction() {}
+    replace myFunction() {}
+    on myFunction() {}
+    after myFunction() {}
+    before myFunction() {}
+}
+```
+
+----------------------------------------------------------------------
+
+idea: home systems as a good market:
+- clearly something needed here
+- what's the ultimate home lighting control system? 
+    => tap on a zone, ask for the lighting to change
+    => eg. point to the coffee table or the sink, say "lights up here"
+- requires "omniscient AI camera watching everything you do without wearable camera"
+- not creepy at all honest: all controlled by your own code innit
+- no headset required: just all-seeing home alexa now with sam altman / us built in
+
+=> make this trustable and verifiable using the three principles: loyalty, discretion, transparency
+
+oh btw zero / zfg / do the math
+
+----------------------------------------------------------------------
+
+test: clients should run "shared" tests, but servers should only run things they can run when solo.
+
+    @test test_name() {
+    }
+
+Now that's fine, we can create lots of different tests.
+Most of the time, a test will be a "replay" of a failed run, which we then fix.
+start at state0, sequence of operations, end up at stateN, check condition => pass/fail.
+
+    @fixme failing_test() {
+    }
+
+I think any thoughts about whether stuff should be in fm.ts or outside fm.ts should default to "inside".
+fm.ts is the engine. We can always look into extendability later.
+
+
+
+--------------------------------------------------------------------------------
+
+ok then testing. HOWTO.
+
+Can't use a virtual _test() method; because if you don't define it, it calls the parent.
+So we need a decorator to mark any method as a test.
+Which in turn means that we can support multiple named tests.
+
+    @test async _test() : Promise<boolean> {
+    }
+
+    @test _test() : boolean {
+    }
+
+Both are totally fine. Let's do that.
+
+OK: so test decorator. But only one per feature to start with.
+Done. The next thing is, though, where and when do we run the tests?
+
+The point of a test is that it runs "before" the main application.
+But what if the test is actually testing some kind of interactive / real time / multi-machine thing?
+We want to do "full integrated" tests, right? 
+So this is a moving feast.
+
+Anyway, let's just fill in the tests for each feature.
+The interesting thing is: when you write a test for the top-level feature, there are no lower-level tests.
+As you add behaviour, you're adding new tests, and potentially breaking higher-level ones.
+So you're saying stuff like: "this new feature breaks tests in the parent, but that's fine because XYZ"
+which means that you actually have to be able to point to individual tests, which means ... I don't know.
+
+Two tenets:
+
+"a test is written at the time of the creation of the feature, but must continue to pass when the feature is extended"
+
+"if a new feature causes an existing feature to fail its tests, then we create an *adapter* to help the test to pass"
+
+What is this mysterious adapter? Simply, it's whatever features you need to fix the problem.
+
+Often, you'll find that you'll need to modify the original test to make it pass when the feature is upgraded.
+This (obviously) extends to the documentation as well; so you now you can say,
+
+"the old behaviour of the system was (X); now, with a slightly different invocation, it's ..."
+
+We could therefore be devilish and use @replace / @after / @before / @on.
+What's the worst that could happen? Just extend the test to do whatever.
+In parallel? why? Let's make that all work properly, I mean what's the worst that could happen?
+
+We want to call something and see a full readout (graphically helloooo) in the browser.
+So let's make that an absolutely beautiful experience: webIDE ahoy.
+
+pulse.
+great name.
+also:
+
+*magpie* for the sample chucker-together hahaha
+
+I think that's the thing you do: decorate the first thing "test", and test() will just run itself, as it ought to.
+Fucking brilliant; just do it that way.
+
+So we don't need a particularly savage test harness, we kind of have it already.
+test() just gets made more sophisticated through normal extension.
+FINE FINE FINE.
+And it either throws, returns false, or returns true, plus a console as well obviously.
+
+So we don't need anything, just test() as per fucking normal.
+
+Let's try it.
+
+
+
+---------------------------------------------------------------------------
+next steps:
+
+1- get testing framework running
+2- test logging across multiple machines, async, the works
+3- literate programming: md=>ts
+4- vault function
+5- interactive editor (zerp)
+
+
 
 ------------------------------------------------------------------------
 

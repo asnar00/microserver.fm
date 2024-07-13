@@ -5,7 +5,7 @@ microserver.fm is a feature-modular deno server.
 
 ## feature modularity
 
-Users and developers are used to talking about "features" : units of functionality related to a particular task. However, most programming languages lack first-class language structures that correspond to features.
+Users and developers are used to talking about "features" : units of functionality related to a particular capability. However, most programming languages lack first-class language structures that correspond to features.
 
 When adding a feature, therefore, we typically make a number of changes dispersed across the codebase. Conversely, when we look at any particular point in the code, we'll usually see code from multiple features intersecting at that point. This makes it difficult to reason about features and their interactions by looking at the code.
 
@@ -166,10 +166,10 @@ We can read out the tree of features and the list of functions, including curren
 Which prints
 
     Feature
-    Main
-        Hello
-        Goodbye
-        Countdown
+        Main
+            Hello
+            Goodbye
+            Countdown
 
 If you disable a feature, its name is greyed out in the feature tree, and its children are not traversed.
 
@@ -213,15 +213,15 @@ Feature-modular typescript ("fm.ts") is ordinary typescript augmented with a set
         "emitDecoratorMetadata": true,
     }
 
-## future work
+## upcoming work
 
-- improve console.log print format for composite structs
 - tests!
+- time-domain behaviour
+- heterogenous cluster programming
 - structure instances tagged with supported features
-- specifying client and server code in the same feature
 - multiple contexts: switch between different feature-groups
 - debugging workflows: automated logging, fault tracing
 - reasoning about code: understanding how features interact
 - namespaces and interfaces
 - server-specific features: a better framework for data consistency across clients
-
+- improve console.log print format for composite structs
