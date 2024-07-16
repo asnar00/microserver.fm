@@ -1,5 +1,22 @@
 # scribbles
 
+What we're actually doing now: `fnf.ts`.
+
+fnf.ts reads blah.fnf.md files and outputs blah.fm.ts files.
+
+----------------------------------------------------------------
+Most efficient route forward:
+
+1- fm.ts to get zerp working; literate fm.ts with LLM translation.
+2- use zerp to write zinc in fm.ts (zero to arm multicore).
+3- buy a 192-core server and write a hypervisor
+4- add some GPUs and get the GPU stuff working
+
+So fm.ts should be literate from the ground up. That's just the obvious thing, there's really no big deal to it. But everything should be literate, even the fm.ts processor.
+
+So the *core* of the system is the .md pipeline.
+
+----------------------------------------------------------------
 Woke up this morning definitely feeling like I want to write the .md pipeline,
 convert "fm.ts" to straight .ts, and feed back errors using a zerp-like workflow.
 Of course, until the web editor is working, the workflow is awful.
