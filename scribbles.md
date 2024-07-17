@@ -1,5 +1,54 @@
 # scribbles
 
+Tomorrow: compile the tree you produce, then run the tests, issue report.
+Then do a tree of features.
+Then move the client, server and shared code across to it. 
+Get on with it.
+
+--------------------------------------------------------
+Brief aside to record a new-ish intuition about streams.
+
+A stream is a time-series, right? It's a list of pairs: (time, value)*i*.
+
+An array is a special case of a stream where t*i* = *i*, where *i* starts at 0.
+
+An array slice is a case where *i* starts at something other than 0.
+
+A sparse array can be made by concatenating two arrays with non-intersecting ranges, so the first range is i E ( a .. b ) and the second is i E (c .. d) where c > b+1.
+
+If we constrain t*i* to be any integer (let's say 64 bits for argument's sake), and tie the stream to time by setting a "time step" to be a rational number of seconds, n/d. So we can go from *i* to *t* (actual time) using t = i * n/d, and of course from t to i using i = t * d/n.
+
+If we set up d/n so that all elements of the array map to the range t E (0..1), then we have a texture sampler. 
+
+What this means is that streams, sparse arrays, plain old arrays and texture samplers can all be represented by a single data structure.
+
+That structure looks something like this:
+
+    slice = (num, den, iStart, nElements, data)
+    stream = list of slices
+
+So for instance, if we have an audio stream playing at a fixed speed of 44.1KHz, then there's just one slice:
+
+    (1, 44100, 0, nSamples)
+
+On the other hand, if we play n0 samples at 44.1 Khz and then n1 samples at 48Khz, the output will look something like this:
+
+    (1, 44100, 0, n0) • (1, 48000, n0, n1)
+
+Where `•` is the concatenation operator (and should be allowed as it's a character).
+
+So there's an abstract object called a stream which is the list of these slices; and we can operate on these objects using a range of different operations; but fundamentally, that's what we're doing when we specify time-domain behaviour.
+
+In the actual system, a task holds a rolling "window" onto the abstract stream, throwing away stuff it no longer needs. It can hold some data stretching back into the past, and for input devices (such as audio incoming) it by definition doesn't have anything going into the future, but for algorithmically generated streams it can evalute at any time in the future.
+
+-----
+short tangent into latency, seeing as we're here:
+
+we can represent the speed of a computation using a rational time duration num/den.
+
+
+
+----------------------------------------------------------------
 What we're actually doing now: `fnf.ts`.
 
 fnf.ts reads blah.fnf.md files and outputs blah.fm.ts files.
