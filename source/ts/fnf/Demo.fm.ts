@@ -12,7 +12,7 @@ export declare const main: () => void;
 
 @feature export class _Demo extends _Feature { //@ 6
 @replace main() { fm.log("nothing to see here"); } //@ 10
-} //@ 14
 
-export async function Demo_test() {
+async _test() {
+}
 }

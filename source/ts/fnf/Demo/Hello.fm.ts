@@ -15,7 +15,7 @@ export declare const main: () => void;
 @feature export class _Hello extends _Demo { //@ 6
 @on hello() { fm.log("hello world!"); } //@ 10
 @on main() { hello(); } //@ 14
-} //@ 18
 
-export async function Hello_test() {
+async _test() {
+}
 }

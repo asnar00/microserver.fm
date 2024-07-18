@@ -28,13 +28,13 @@ declare const my_test: () => Promise<void>;
 @feature class _Client extends _Feature {
     static server = make(Device, { url: "http://localhost", port: 8000 });
     @def async client() { 
-        log("ᕦ(ツ)ᕤ client.fm");
+        fm.log("ᕦ(ツ)ᕤ client.fm");
         shared.load_module();
         await fm.test();
         await startup();
         await run();
         await shutdown();
-        log("done.");
+        fm.log("done.");
     }
     @after async shutdown() : Promise<void> {}
 }
@@ -53,7 +53,7 @@ declare const check_online: () => void;
     @def async check_online() {
         let online = await ping(_Offline.server);
         _Offline.offline = !online;
-        if (online) log("connected"); else log("offline");
+        if (online) fm.log("connected"); else fm.log("offline");
     }
     @def async setup_offline() {
         let msg = await browser.setupServiceWorker();

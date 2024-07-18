@@ -3,7 +3,7 @@
 
 `Hello` just prints 'hello world' to the log:
 
-    feature Hello extends Demo {
+    feature Hello extends Demo;
 
 First we define a function `hello` that just prints "hello world" to the log:
 
@@ -12,7 +12,3 @@ First we define a function `hello` that just prints "hello world" to the log:
 And then we plug it in so that it gets run whenever `main` gets run.
 
     on main() { hello(); }
-
-And then, annoyingly:
-
-    }

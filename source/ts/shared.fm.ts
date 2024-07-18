@@ -21,9 +21,8 @@ export declare const shutdown: () => void;
     @def async startup() {}
     @def async run() {}
     @def async shutdown() {}
-    async _test() : Promise<boolean> { 
+    async _test() { 
         fm.log("hello from _Shared.test()");
-        return true;
     }
 }
 

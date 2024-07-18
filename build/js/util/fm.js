@@ -687,11 +687,6 @@ export class FeatureManager {
         // Check if the method in the subclass and superclass are the same function
         return subclassMethod !== superclassMethod;
     }
-    //-------------------------------------------------------------------------
-    // reporting / source path
-    source(path) { console.log("source:", path); }
-    output(value, line) { }
-    assert(value, check, line) { }
 }
 //-------------------------------------------------------------------------
 // logging

@@ -1,4 +1,17 @@
-# scribbles
+# scribblez
+
+Achieved: 
+- tree of .md features in folders
+- renames features to _features, writes boilerplate
+- automatically does import, declares
+
+Tomorrow:
+- move to feature X extends Y; syntax, so no trailing `}`
+- move test to method of feature
+- move declares to .d.ts files
+- compile tree using tsc / tsconfig
+
+------------------------------------------------------------
 
 Achieved: processes .fnf.md and outputs .fm.ts;
 runs tsc and processes console log to output .md filename/line numbers.

@@ -19,13 +19,13 @@ import { Device } from './shared.fm.js';
 addEventListener("load", () => { client(); });
 let _Client = class _Client extends _Feature {
     async client() {
-        log("ᕦ(ツ)ᕤ client.fm");
+        fm.log("ᕦ(ツ)ᕤ client.fm");
         shared.load_module();
         await fm.test();
         await startup();
         await run();
         await shutdown();
-        log("done.");
+        fm.log("done.");
     }
     async shutdown() { }
 };
@@ -53,9 +53,9 @@ let _Offline = _Offline_1 = class _Offline extends _Client {
         let online = await ping(_Offline_1.server);
         _Offline_1.offline = !online;
         if (online)
-            log("connected");
+            fm.log("connected");
         else
-            log("offline");
+            fm.log("offline");
     }
     async setup_offline() {
         let msg = await browser.setupServiceWorker();

@@ -21,7 +21,6 @@ let _Shared = class _Shared extends _Feature {
     async shutdown() { }
     async _test() {
         fm.log("hello from _Shared.test()");
-        return true;
     }
 };
 __decorate([

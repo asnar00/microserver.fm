@@ -50,7 +50,7 @@ class LogResult<R> {
 // base class of all feature clauses
 
 export class _Feature {
-    async _test() : Promise<boolean> { 
+    async _test() { 
         fm.log("hello from _Feature.test()");
         return true; 
     }

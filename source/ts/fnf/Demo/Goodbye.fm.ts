@@ -13,9 +13,10 @@ export declare const goodbye: () => void;
 export declare const main: () => void;
 
 @feature export class _Goodbye extends _Demo { //@ 6
-@def goodbye() { fm.log("kthxbye."); } //@ 7
-@after main() { goodbye(); } //@ 8
-} //@ 9
+@def goodbye() { fm.log("kthxbye."); } //@ 8
+ //@ 9
+@after main() { goodbye(); } //@ 10
 
-export async function Goodbye_test() {
+async _test() {
+}
 }
