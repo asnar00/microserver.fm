@@ -12,7 +12,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { _source } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/test.js";
 _source("/Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo.md");
-import { _Feature, feature, replace, fm } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/fm.ts";
+import { _Feature, feature, replace, fm } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/fm.js";
 let _Demo = class _Demo extends _Feature {
     main() { fm.log("nothing to see here"); } //@ 10
     async _test() {

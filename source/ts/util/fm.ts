@@ -52,7 +52,6 @@ class LogResult<R> {
 export class _Feature {
     async _test() { 
         fm.log("hello from _Feature.test()");
-        return true; 
     }
     existing(fn: Function) {
         let name = functionNames.get(fn);
@@ -329,6 +328,7 @@ function listParams(func: Function): string[] {
 
 export class FeatureManager {
     isDebugging: boolean = false;
+    sourcePath = "";
 
     // disable one or more features
     disable(featureNames: string[]) {
@@ -654,6 +654,20 @@ export class FeatureManager {
         return String(arg);
     }
 
+
+    //-------------------------------------------------------------------------
+    // fnf-specific functions: set source file, output to console, assert
+    _source(path: string) { this.sourcePath = path;}
+
+    _output(value: any, line: number) {
+        console.log(value, `(${this.sourcePath}:${line})`);
+    }
+
+    _assert(value: any, expected: any, line: number) {
+        if (value != expected) {
+            console.error(`expected ${expected}, got ${value} (${this.sourcePath}:${line})`);
+        }
+    }
 
     //-------------------------------------------------------------------------
     // low-level function management in module (=global) scope

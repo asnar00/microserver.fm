@@ -50,7 +50,6 @@ class LogResult {
 export class _Feature {
     async _test() {
         fm.log("hello from _Feature.test()");
-        return true;
     }
     existing(fn) {
         let name = functionNames.get(fn);

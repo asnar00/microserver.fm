@@ -19,7 +19,7 @@ function fnfToTsFilename(fnfFilename: string) : string {
 }
 
 function fixFeatureCode(code: string) : string {
-    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.ts";`;
+    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.js";`;
 
     // extract feature names
     const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
@@ -67,8 +67,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     const filename = fnfToTsFilename(mdFilename);
     let lineMap : number[] = [];        // maps 0-based output line number to markdown line number
     let testLineMap : number[] = [];    // maps test lines to markdown line numbers
-    const importStr = `import { _source, _output, _assert }  from "${cwd}/util/test.js";`;
-    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename}\n// created from ${mdFilename}\n\n${importStr}\n\n_source("${mdFilename}");\n\n`;
+    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename}\n// created from ${mdFilename}\n`;
     let code = "";
     let testCode = "";
     // split markdown into lines, test cases separated into testCode
@@ -81,9 +80,9 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
                 const parts = line.split("==>").map(p => p.trim());
                 let outLine = line;
                 if (parts.length == 1 || parts[1] == "") {
-                    outLine = `    _output(await ${parts[0]}, ${i+1});`;
+                    outLine = `    fm._output(await ${parts[0]}, ${i+1});`;
                 } else if (parts.length == 2) {
-                    outLine = `    _assert(await ${parts[0]}, ${parts[1]}, ${i+1});`;
+                    outLine = `    fm._assert(await ${parts[0]}, ${parts[1]}, ${i+1});`;
                 }
                 testCode += outLine + "\n";
                 testLineMap.push(i+1);
@@ -98,6 +97,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     code = code.split("\n").map((line, i) => lineMap[i] ? `${line} //@ ${lineMap[i]}` : line).join("\n");
     testCode = testCode.split("\n").map((line, i) => testLineMap[i] ? `${line} //@ ${testLineMap[i]}` : line).join("\n");
     
+    code = `fm._source("${mdFilename}");\n\n` + code;
     code = fixFeatureCode(code);
 
     const testName = os.basename(filename).replaceAll(".fm.ts", "") + "_test";

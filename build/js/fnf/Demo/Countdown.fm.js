@@ -12,7 +12,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { _source } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/test.js";
 _source("/Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Countdown.md");
-import { feature, on, before, fm } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/fm.ts";
+import { feature, on, before, fm } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Countdown = class _Countdown extends _Demo {
     countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); } //@ 10

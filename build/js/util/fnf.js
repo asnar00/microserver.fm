@@ -14,7 +14,7 @@ function fnfToTsFilename(fnfFilename) {
     return fnfFilename.replaceAll(".md", ".fm.ts").replaceAll("/fnf/", "/ts/fnf/");
 }
 function fixFeatureCode(code) {
-    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.ts";`;
+    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.js";`;
     // extract feature names
     const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
     if (match) {
