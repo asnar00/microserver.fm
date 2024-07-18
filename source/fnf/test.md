@@ -3,7 +3,7 @@
 
 This is a file that tests the fnf utility. It contains some markdown text, and some code snippets.
 
-Code snippets are indented using four spaces, like this:
+Code snippets are indented using four spaces, like this: 
 
     function main() {
         console.log("hello world");

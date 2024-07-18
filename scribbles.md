@@ -1,5 +1,15 @@
 # scribbles
 
+Achieved: processes .fnf.md and outputs .fm.ts;
+runs tsc and processes console log to output .md filename/line numbers.
+Not working yet: 
+- run the actual tests
+- auto-run whenever .fnf.md files change
+- import from fm.ts (think it's not using the right config).
+- run on full folder
+- declarations into .d.ts somehow
+
+---------------------------------------------------------
 Tomorrow: compile the tree you produce, then run the tests, issue report.
 Then do a tree of features.
 Then move the client, server and shared code across to it. 

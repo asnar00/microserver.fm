@@ -80,3 +80,23 @@ export async function runCommand(cmdAndArgs: string[]) : Promise<CmdOutput> {
     const error = new TextDecoder().decode(rawError);
     return new CmdOutput(code, output, error);
 }
+
+export function datestamp(file: string) {
+    if (deno_fs.existsSync(file)) {
+        const fileInfo = Deno.lstatSync(file);
+        return fileInfo.mtime!;
+    } else {
+        return 0;
+    }
+}
+
+export async function allFilesInFolderRec(dirPath: string, extension: string): Promise<string[]> {
+    const filesWithExtension: string[] = [];
+    if (extension.startsWith(".")) { extension = extension.substring(1); }
+    for await (const entry of deno_fs.walk(dirPath, { includeDirs: false, exts: [extension] })) {
+        if (entry.isFile) {
+            filesWithExtension.push(entry.path);
+        }
+    }
+    return filesWithExtension;
+}

@@ -33,7 +33,7 @@ nøøb is a [community interest company](https://www.gov.uk/government/publicati
 
 nøøb is run and funded by me, Ashraf Nehru (otherwise known as *asnaroo*), and a group of trustees.
 
-nøøb is fully remote, with locations in Soho, London; Sitges, Spain; and Atherton, California.
+nøøb is fully remote, with locations in Soho, London; Sitges, Spain; and Palo Alto, California.
 
 ## business approach
 

@@ -1,7 +1,7 @@
 "use strict";
 // ᕦ(ツ)ᕤ
 // ./../ts/fnf/test.fm.ts.ts
-// created from ./../fnf/test.fnf.md
+// created from ./../fnf/test.md
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -41,7 +41,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 exports.__esModule = true;
 exports.test_test = void 0;
 var test_js_1 = require("/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/test.js");
-(0, test_js_1._source)("./../fnf/test.fnf.md");
+(0, test_js_1._source)("./../fnf/test.md");
 function main() {
     console.log("hello world"); //@ 9
 } //@ 10

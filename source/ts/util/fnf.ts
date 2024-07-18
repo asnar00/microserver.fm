@@ -14,7 +14,52 @@ if (os.nArgs() < 1) {
 }
 
 function fnfToTsFilename(fnfFilename: string) : string {
-    return fnfFilename.replaceAll(".fnf.md", ".fm.ts").replaceAll("/fnf/", "/ts/fnf/");
+    return fnfFilename.replaceAll(".md", ".fm.ts").replaceAll("/fnf/", "/ts/fnf/");
+}
+
+function fixFeatureCode(code: string) : string {
+    console.log("----------------------------------------");
+    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.ts";`;
+    // extract feature names
+    const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
+    if (match) {
+        const featureName = match[1];
+        const parentFeatureName = match[2] || "";  // Default to empty string if not present
+        code = code.replaceAll(featureName, "_"+featureName);
+        if (parentFeatureName != "") {
+            code = code.replaceAll(parentFeatureName, "_"+parentFeatureName);
+            if (parentFeatureName != "Feature") {
+                importStr += `\nimport { _${parentFeatureName} } from "../${parentFeatureName}.fm.js";`;
+            }
+        }
+    } 
+
+    code = code.replace(/^\s*feature\b/gm, '@feature export class');
+    code = code.replace(/^\s*on\b/gm, '@on');
+    code = code.replace(/^\s*def\b/gm, '@def');
+    code = code.replace(/^\s*replace\b/gm, '@replace');
+    code = code.replace(/^\s*after\b/gm, '@after');
+    code = code.replace(/^\s*before\b/gm, '@before');
+    code = code.replace(/^\s*struct\b/gm, '@struct');
+    code = code.replace(/^\s*extend\b/gm, '@extend');
+
+    console.log("code:\n", code);
+    // get a list of all functions declared in the feature
+    const regex = /@(\w+)\s+(\w+)\s*\((.*?)\)\s*(?::\s*(\w+))?\s*\{/g;
+    const results = [];
+    let declarations = "";
+    for (const match of code.matchAll(regex)) {
+        const keyword = match[1];
+        const funcName = match[2];
+        const funcParams = match[3];
+        const funcResult = match[4] || 'void'; 
+        console.log("found", keyword, funcName, funcParams, funcResult);
+        const decl = `export declare const ${funcName}: (${funcParams}) => ${funcResult};`;
+        declarations += decl + "\n";
+    }
+
+    code = importStr + "\n\n" + declarations + "\n" + code;
+    return code;
 }
 
 function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
@@ -22,7 +67,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     let lineMap : number[] = [];        // maps 0-based output line number to markdown line number
     let testLineMap : number[] = [];    // maps test lines to markdown line numbers
     const importStr = `import { _source, _output, _assert }  from "${cwd}/util/test.js";`;
-    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename}.ts\n// created from ${mdFilename}\n\n${importStr}\n\n_source("${mdFilename}");\n\n`;
+    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename}\n// created from ${mdFilename}\n\n${importStr}\n\n_source("${mdFilename}");\n\n`;
     let code = "";
     let testCode = "";
     // split markdown into lines, test cases separated into testCode
@@ -47,21 +92,28 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
             }
         }
     }
+
     // affix line numbers to all code and test code
     code = code.split("\n").map((line, i) => lineMap[i] ? `${line} //@ ${lineMap[i]}` : line).join("\n");
     testCode = testCode.split("\n").map((line, i) => testLineMap[i] ? `${line} //@ ${testLineMap[i]}` : line).join("\n");
     
+    code = fixFeatureCode(code);
+
     const testName = os.basename(filename).replaceAll(".fm.ts", "") + "_test";
     code += `\nexport async function ${testName}() {\n` + testCode + "}\n";
     return prefix + code;
 }
 
-async function processFile(filename: string) {
-    const markdown = os.readFile(filename);
-    const code = convertMarkdownToCode(markdown, filename);
+async function processFile(filename: string, sourceFile: string) {
     const outFile = fnfToTsFilename(filename);
-    os.writeFile(outFile, code);
-    console.log(`Wrote ${outFile}`);
+    const outDate = os.datestamp(outFile);
+    const sourceDate = os.datestamp(sourceFile);
+    if (sourceDate > outDate || os.datestamp(filename) > outDate) {
+        console.log(`Processing ${filename}`);
+        const markdown = os.readFile(filename);
+        const code = convertMarkdownToCode(markdown, filename);
+        os.writeFile(outFile, code);
+    }
     return outFile;
 }
 
@@ -113,13 +165,26 @@ async function buildFile(filename: string) : Promise<string>{
     return cmdOut.output;
 }
 
+async function processFolder(folder: string) {
+    console.log("Processing folder", folder);
+    const sourceFile = folder.replaceAll("/fnf", "/ts/util/fnf.ts");
+    const files = await os.allFilesInFolderRec(folder, ".md");
+    for(const file of files) {
+        console.log("Checking", file.replaceAll(folder+"/", ""));
+        await processFile(file, sourceFile);
+    }
+}
+
 async function main() {
     console.log("cwd", cwd);
-    const filename = os.arg(0);
-    const outFile = await processFile(filename);
-    const result = await buildFile(outFile);
-    const log = processBuildLog(result);
-    console.log(log);
+    const folder = cwd.replace("/ts", "/fnf");
+    console.log("folder", folder);
+    await processFolder(folder);
+    //const filename = os.arg(0);
+    //const outFile = await processFile(filename);
+    //const result = await buildFile(outFile);
+    //const log = processBuildLog(result);
+    //console.log(log);
 }
 
 main();
