@@ -18,7 +18,6 @@ function fnfToTsFilename(fnfFilename: string) : string {
 }
 
 function fixFeatureCode(code: string) : string {
-    console.log("----------------------------------------");
     let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.ts";`;
     // extract feature names
     const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
@@ -42,8 +41,6 @@ function fixFeatureCode(code: string) : string {
     code = code.replace(/^\s*before\b/gm, '@before');
     code = code.replace(/^\s*struct\b/gm, '@struct');
     code = code.replace(/^\s*extend\b/gm, '@extend');
-
-    console.log("code:\n", code);
     // get a list of all functions declared in the feature
     const regex = /@(\w+)\s+(\w+)\s*\((.*?)\)\s*(?::\s*(\w+))?\s*\{/g;
     const results = [];
@@ -53,7 +50,6 @@ function fixFeatureCode(code: string) : string {
         const funcName = match[2];
         const funcParams = match[3];
         const funcResult = match[4] || 'void'; 
-        console.log("found", keyword, funcName, funcParams, funcResult);
         const decl = `export declare const ${funcName}: (${funcParams}) => ${funcResult};`;
         declarations += decl + "\n";
     }
