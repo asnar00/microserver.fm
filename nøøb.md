@@ -41,64 +41,64 @@ It is our belief that good systems cannot be created in a vacuum; instead, they 
 
 Our business model is therefore to invest in individuals or companies creating real-world applications and features using our platform. To align the interests of all concerned, these individuals and companies may also take a mutual stake in nøøb itself. This keeps the profit motive "outside the castle walls", but ensures that the users of the platform can exercise control over its direction.
 
-## research agenda
+## research plan
 
-Research and development will proceed in three phases.
+Research and development will proceed as follows:
 
-### Phase one: understanding the problem
+## core track
 
-The result of phase one is :
+The core track develops the programming language and the tooling workflows.
 
-- a language that we're confident is useful for real-world applications
-- a reasonably performant, accessible implementation running on the web
+### fnf.ts
 
-#### fnf.ts
+`fnf.ts` (*feature normal form* for typescript) explores `fm.ts`, a feature-modular dialect of typescript; and a *literate* approach to expressing programs in `fm.ts` that combines specification, documentation, tests, and other meta-code artefacts with the code, in a human-first presentation format based on markdown.
 
-`fm.ts` is *feature modular* typescript - a feature-modular dialect of typescript, written in native typescript using decorators.
+### zerp
 
-`fnf.ts` is *feature normal form* typescript - a markdown-based representation, organised into features, that includes specification, documentation, tests and tutorials, as well as the code itself. `fnf.ts` markdown files are processed to extract `fm.ts` code which is then compiled using `tsc`; the compilation report is then processed to map line numbers back to the markdown file.
+Written in `fnf.ts`, `zerp` (the 'zero repl') is a wysiwyg editor for `fnf.ts` programs, exploring feature-modular workflows for editing, exploration, deployment, testing, logging, fault replication and diagnosis, and so on. `zerp` also acts as a framework for deploying LLM-based coding tools, with the goal of being able to translate code from `fnf.ts` to `zero` and back.
 
-#### zerp
+### zero
 
-`zerp` is a simple web-based literate IDE for `fnf.ts`, written in `fnf.ts`. It lets the user view and edit code using wysiwyg markdown, while collaborating with other users. It integrates features such as local-first storage, real-time collaboration via text, audio and video, and RAG/LLM-based code transformations.
+Having hopefully gained enough road mileage with `fnf.ts`, we apply the lessons learned to v2.0 of the specification document for the zero programming language (as gleaned from the prompts to `zerp`). This, along with motivating examples for each language feature, becomes the "base level" going forward.
 
-A key feature of zerp is the abilty to translate code from one language to another. This allows us to move our `fnf.ts` code to zero, or to write code in zero that we then translate back to `fnf.ts` so we can run it. This allows us to evolve the definition of the language to suit our needs, without wasting any effort.
+### zinc
 
-#### zinc
+Once this is done, we're ready to build ourselves a compiler! `zinc` (the zero incremental compiler) processes fnf zero code (freshly output by the translation engine in `zerp`) and turns it into whatever we like, in a just-in-time / incremental fashion that effectively drives compile times to .. zero.
 
-`zinc` (*zero incremental compiler*) is a parser / compiler framework for zero, written using `zerp`, that:     
-- is independent of LLVM and other legacy toolchains
-- allows us to experiment with language features easily
-- allows us to add multiple backends
-- has a just-in-time / incremental workflow
-- allows fast fault replication, diagnosis and patching
+### zinc => wasm
 
-Initially, we'll develop a WebASM backend, followed closely by a WebGPU backend. Once that is done, we'll mechanically translate all existing `fnf.ts` code into zero.
+We then add a backend for `wasm` (*web assembly*) so people can write and run zero programs in their browser, at a tolerably decent speed. At which point, we can see if what we have is "delightful" enough to proceed.
 
-### Phase two: creating the core platform
+### zinc => WebGPU
 
-The result of phase two is the `home` machine: a powerful and scalable server that can run zero features without relying on any legacy code.
+Once `zinc` is working on WebASM, the logical next step is to add a backend for WebGPU, and put in the tooling to make them interoperate. This is essential because GPU considerations have to push on the language design.
 
-#### Reference hardware
+## platform track
 
-We build a multi-CPU, multi-GPU server - most likely a multicore ARM CPU, and two Nvidia GPUs - and write a zinc backend for it. This lets us run zero code running on top of Linux.
+The platform track focuses on getting zero / one running on an actual physical platform, free of dependencies on legacy code.
 
-#### Hypervisor
+### zinc => ARM
 
-Using ideas from the [Qubes](https://www.qubes-os.org/intro/) operating system, we create a native ARM [hypervisor](https://ashw-archive.github.io/arm64-hypervisor-tutorial-1.html) that acts as the operating system, hosting each task in its own virtual machine, with features running as close to the metal as possible.
+A native ARM code generator (and optimiser) that lets us compile zero programs to run on MacOS / Linux. 
 
-### Phase three: developing the user experience
+### zinc => vulkan
 
-The result of phase three is a demonstration unit that maximises rendering and processing power while allowing the user to roam freely inside and outside, with VR / display as an optional rather than mandatory part of the interface.
+Although Vulkan is a legacy dependency, it means that at least zero programs will be able to run natively on linux.
 
-#### backpack machine
+### hypervisor
 
-This is a portable gaming-laptop machine based on the reference server, in a [backback format](https://www.zotac.com/page/zotac-vr-go-4) that can be worn out in the real world while still providing decent performance and connectivity. It includes GPS, mobile internet, and swappable battery.
+Based on ideas from the Qubes operating system, we use zero/zerp/zinc to create a hypervisor-level task scheduler, running on a reference ARM-based system, removing our Linux dependency.
 
-#### whisper prototype
+### zinc => native GPU
 
-This is a headset combining a contact microphone, headphones, and twin 180-degree cameras. It is controlled through subvocal audio commands (whispering), and communicates through audio only. All processing is done on the backpack. We can add an iphone app to display things if necessary.
+This brings zero code to the GPU on our reference system, removing the dependency on Vulkan (and all legacy APIs etc).
 
-#### escape prototype
+## UI (User Interface) track
 
-This is a compact OLED VR headset worn in conjunction with the whisper headset. Similar to the bigscreen beyond, but adding eye-tracking. All processing and rendering is done on the backpack.
+### whisper
+
+`whisper` is a head-mounted, audio-operated "personal cognitive assistant" - basically, a pair of headphones coupled with a 360-degree camera, streaming to a backpack computer. This form gives us portability, and enough power to explore technologies slightly beyond the curve of mobile.
+
+### escape
+
+`escape` is a head-mounted VR headset: a small, light OLED HMD like the bigscreen beyond, used in conjunction with `whisper`. Inside-out tracking uses `whisper` 360-cameras, and all UI elements carry over from `whisper`. We eschew eye-tracking and use head movements / aiming instead. The key is that it's hella high resolution and runs at 240Hz, but the graphics complexity is scalable so everything can run that fast.

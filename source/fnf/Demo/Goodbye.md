@@ -1,5 +1,5 @@
 ᕦ(ツ)ᕤ
-# Goodbye
+# Demo/Goodbye
 
 `Goodbye` just prints "goodbye" (or something like it) right at the end.
 
@@ -7,4 +7,4 @@
 
     def goodbye() { fm.log("kthxbye."); }
         
-    after main() { goodbye(); }
+    after demo() { goodbye(); }

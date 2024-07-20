@@ -18,8 +18,50 @@ function fnfToTsFilename(fnfFilename: string) : string {
     return fnfFilename.replaceAll(".md", ".fm.ts").replaceAll("/fnf/", "/ts/fnf/");
 }
 
-function fixFeatureCode(code: string) : string {
-    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.js";`;
+class Declaration {
+    keyword: string = "";
+    funcName: string = "";
+    funcParams: string = "";
+    funcResult: string = "";
+    constructor(keyword: string, funcName: string, funcParams: string, funcResult: string) {
+        this.keyword = keyword;
+        this.funcName = funcName;
+        this.funcParams = funcParams;
+        this.funcResult = funcResult;
+    }
+    toString() : string {
+       return `declare const ${this.funcName}: (${this.funcParams}) => ${this.funcResult};`;
+    }
+    fromDeclString(declString: string) {
+        const regexp = /declare\s+const\s+(\w+):\s+\(([^)]*)\)\s+=>\s+([^;]+);/;
+        const match = declString.match(regexp);
+        if (match) {
+            this.funcName = match[1];
+            this.funcParams = match[2];
+            this.funcResult = match[3];
+        } else {
+            console.log("No match found:", declString);
+        }
+    }
+}
+
+function getDeclarations(code: string) : Declaration[] {
+    const regex = /@(\w+)\s+(\w+)\s*\((.*?)\)\s*(?::\s*(\w+))?\s*\{/g;
+    const results = [];
+    let declarations : Declaration[] = [];
+    for (const match of code.matchAll(regex)) {
+        const keyword = match[1];
+        const funcName = match[2];
+        const funcParams = match[3];
+        const funcResult = match[4] || 'void'; 
+        declarations.push(new Declaration(keyword, funcName, funcParams, funcResult));
+    }
+    return declarations;
+}
+
+function fixFeatureCode(code: string, filename: string) : string {
+    const allTsFile = cwd + "/fnf/all.d.ts";
+    let importStr = `/// <reference path="${allTsFile}" />\nimport { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.js";`;
 
     // extract feature names
     const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
@@ -46,20 +88,12 @@ function fixFeatureCode(code: string) : string {
     code = code.replace(/^\s*before\b/gm, '@before');
     code = code.replace(/^\s*struct\b/gm, '@struct');
     code = code.replace(/^\s*extend\b/gm, '@extend');
-    // get a list of all functions declared in the feature
-    const regex = /@(\w+)\s+(\w+)\s*\((.*?)\)\s*(?::\s*(\w+))?\s*\{/g;
-    const results = [];
-    let declarations = "";
-    for (const match of code.matchAll(regex)) {
-        const keyword = match[1];
-        const funcName = match[2];
-        const funcParams = match[3];
-        const funcResult = match[4] || 'void'; 
-        const decl = `export declare const ${funcName}: (${funcParams}) => ${funcResult};`;
-        declarations += decl + "\n";
-    }
+   
+    const dtsFilename = filename.replaceAll(".fm.ts", ".fm.d.ts");
+    const declarations = getDeclarations(code).map(d => d.toString()).join("\n");
+    os.writeFile(dtsFilename, declarations);
 
-    code = importStr + "\n\n" + declarations + "\n" + code;
+    code = importStr + "\n\n" + code;
     return code;
 }
 
@@ -98,7 +132,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     testCode = testCode.split("\n").map((line, i) => testLineMap[i] ? `${line} //@ ${testLineMap[i]}` : line).join("\n");
     
     code = `fm._source("${mdFilename}");\n\n` + code;
-    code = fixFeatureCode(code);
+    code = fixFeatureCode(code, filename);
 
     const testName = os.basename(filename).replaceAll(".fm.ts", "") + "_test";
     if (code.indexOf("@feature") >= 0) {
@@ -174,6 +208,31 @@ async function buildFile(filename: string) : Promise<string>{
     return cmdOut.output;
 }
 
+async function mergeDeclarations(folder: string) {
+    console.log("Merging declarations in", folder);
+    const files = await os.allFilesInFolderRec(folder, ".fm.d.ts");
+    let declarations : any = {};  // map name => declaration string
+    for(const file of files) {
+        console.log("  Reading", file);
+        const decl = os.readFile(file);
+        const lines = decl.split("\n");
+        for(const line of lines) {
+            if (line.trim() != "") {
+                const decl = new Declaration("", "", "", "");
+                decl.fromDeclString(line);
+                declarations[decl.funcName] = decl.toString();
+            }
+        }
+    }
+    let declStrings = "";
+    for(const key in declarations) {
+        declStrings += declarations[key] + "\n";
+    }
+    const outFile = folder + "/all.d.ts";
+    console.log("Writing", outFile);
+    os.writeFile(outFile, declStrings);
+}
+
 async function processFolder(folder: string) {
     console.log("Processing folder", folder);
     const sourceFile = folder.replaceAll("/fnf", "/ts/util/fnf.ts");
@@ -182,6 +241,8 @@ async function processFolder(folder: string) {
         console.log("Checking", file.replaceAll(folder+"/", ""));
         await processFile(file, sourceFile);
     }
+    const outFolder = folder.replaceAll("/fnf", "/ts/fnf");
+    await mergeDeclarations(outFolder);
 }
 
 async function main() {

@@ -1,13 +1,107 @@
-# scribblez
+# scribbles
 
+another blinding flash of light: 
+everything becomes simpler if we think of everything as a function returning a stream.
+
+so for instance, the demo is just something that outputs a stream of strings : the console.
+
+so instead of 
+
+    def demo() { out$ << "hello world"; }
+
+you would do
+
+    def demo(out$ : str<string>) { out$.push("hello world"); }
+
+OK, this is a little groinky, I'd rather do "<<" - but in fact it might be that we can solve this quite easily with a bit of regexps upfront:
+
+    on out$ : string << demo() {
+        out$ << "hello world";
+    }
+
+I can just compile that to typescript:
+
+    demo(out$ : str<stream>) { out$.push("hello world"); }
+
+AH, we have to write this shit in fm.ts, otherwise chaos. But let's get it building first, then we can use it to write v2.
+
+The thing that I think might be interesting about `str` is if it wasn't just "here is a sequence of T": what if it could also represent parallel invocation.
+
+So no matter how things work out, we can see exactly what happens to the sequence we're creating.
+
+So like you could click on "out$" somewhere and see this:
+
+    10 9 8 7 6 5 4 2 1      < Countdown.countdown()
+    hello world!            < Hello.hello()
+    kthxbye.                < Goodbye.goodbye()
+
+So maybe `str<stream>` is kind of like the really complicated logging stuff - there's actually something super interesting there. That's the core data structure: the stream.
+
+
+    - captures time sequence
+    - captures parallel invocation of stuff
+    
+I like this idea, I like this idea. How about: if we don't get input for X seconds, kthxbye. => and logout or whatever.
+
+So the stages are:
+
+    1- hello world
+    2- hello you (input name)
+    3- goodbye + reset
+    4- countdown alongside
+
+Yeah there's something here.
+
+Demo: here's the basic thing
+Hello: just say hello world
+ +- Greet: get the name first
+    +- Goodbye: if we don't type fast enough
+Drumroll: drumroll before.
+
+This is super cool, let's try this, because it has concurrency, but is simple.
+
+------------------------------------------------
+
+zerp formatting idea: 
+
+instead of trying to draw a "tree", which is complex and doesn't feel quite right yet, do this: 
+
+Show the current feature doc; then below it, oldest first, the child features: but just a name and a one-line description per feature. Clicking on those expands them in-place, in the same editor.
+
+Super simple, no jumping around, easy to zoom in and out. Works on mobile just as well. 
+
+
+-----------------------------------------------------------------
+
+Another thought about R&D strategy:
+
+Backend track:
+
+Develop an intermediate bytecode form similar to SPIR-V (look at their design for inspiration); similar enough that we can translate to and from SPIR-V. This bytecode should, however, have array and stream stuff in it.
+
+We should then be able to compile this bytecode to WebASM, WebGPU, ARM, SPIR-V, whatever, and so on, with minimal fuss. 
+
+Backend track is parallel to the core track.
+
+-----------------------------------------------------------------
+
+okay so we figured out how to do symbol imports (thanks you-know-who)
+so now we have to maintain a global table.
+
+which brings us bang smack into ... namespaces.
+For the moment I'm going to just make one global namespace, but it's something we have to address properly in due course.
+
+Right now, I'm going to create a single "all.d.ts" file, which everyone will import, job done.
+
+------------------------------------------------------------
 Achieved: 
 - tree of .md features in folders
 - renames features to _features, writes boilerplate
 - automatically does import, declares
-
-Tomorrow:
 - move to feature X extends Y; syntax, so no trailing `}`
 - move test to method of feature
+
+Tomorrow:
 - move declares to .d.ts files
 - compile tree using tsc / tsconfig
 

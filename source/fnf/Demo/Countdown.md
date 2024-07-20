@@ -1,5 +1,5 @@
 ᕦ(ツ)ᕤ
-# Countdown
+# Demo/Countdown
 
 `Countdown` just prints the numbers 10 .. 1 before the rest of the whatever.
 
@@ -11,4 +11,4 @@ Really, `countdown` should print the numbers one at a time, one per second, but 
 
 We want this to happen before everything else in the program:
 
-    before main() { countdown(); }
+    before demo() { countdown(); }
