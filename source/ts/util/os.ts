@@ -5,7 +5,6 @@
 // author: asnaroo
 
 import * as deno_http from "https://deno.land/std@0.165.0/http/server.ts";
-import * as deno_file from "https://deno.land/std@0.165.0/http/file_server.ts";
 import * as deno_path from "https://deno.land/std@0.156.0/path/mod.ts";
 import * as deno_fs from "https://deno.land/std@0.156.0/fs/mod.ts";
 
@@ -28,6 +27,10 @@ export function writeFile(path: string, content: string) {
 
 export function extension(path: string): string {
     return "." + path.split('.').pop() || '';
+}
+
+export function dirname(path: string): string {
+    return deno_path.dirname(path);
 }
 
 export function basename(path: string): string {
@@ -81,13 +84,45 @@ export async function runCommand(cmdAndArgs: string[]) : Promise<CmdOutput> {
     return new CmdOutput(code, output, error);
 }
 
-export function datestamp(file: string) {
+export function lastWriteDate(file: string) : number {
     if (deno_fs.existsSync(file)) {
         const fileInfo = Deno.lstatSync(file);
-        return fileInfo.mtime!;
+        return fileInfo.mtime!.getTime()/1000;
     } else {
         return 0;
     }
+}
+
+export function creationDate(file: string) : number {
+    if (deno_fs.existsSync(file)) {
+        const fileInfo = Deno.lstatSync(file);
+        return fileInfo.birthtime!.getTime()/1000;
+    } else {
+        return 0;
+    }
+}
+
+export function filesInFolder(dirPath: string): string[] {
+    const files: { name: string, isFile: boolean }[] = [];
+    for (const dirEntry of Deno.readDirSync(dirPath)) {
+        files.push({ name: dirEntry.name, isFile: dirEntry.isFile });
+    }
+    return files.map(file => file.name);
+}
+
+export function isDirectory(dirPath: string) : boolean {
+    // true if dirPath exists and is a directory
+    return deno_fs.existsSync(dirPath) && Deno.lstatSync(dirPath).isDirectory;
+}
+
+export function fileExists(filePath: string) : boolean {
+    return deno_fs.existsSync(filePath);
+}
+
+export function relativePath(fromPath: string, toPath: string) : string {
+    if (!isDirectory(fromPath)) { fromPath = dirname(fromPath); }
+    if (!isDirectory(toPath)) { toPath = dirname(toPath); }
+    return deno_path.relative(fromPath, toPath);
 }
 
 export async function allFilesInFolderRec(dirPath: string, extension: string): Promise<string[]> {

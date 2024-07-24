@@ -7,7 +7,7 @@
 
 Really, `countdown` should print the numbers one at a time, one per second, but we'll add that behaviour later.
 
-    on countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); }
+    def countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); }
 
 We want this to happen before everything else in the program:
 

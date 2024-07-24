@@ -1,6 +1,3 @@
-// ᕦ(ツ)ᕤ
-// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/Demo/Hello.fm.ts
-// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Hello.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,18 +7,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { _source } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/test.js";
-_source("/Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Hello.md");
-import { feature, on, fm } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/fm.js";
+// ᕦ(ツ)ᕤ
+// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/Demo/Hello.fm.ts
+// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Hello.md
+import { feature, def, on, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Hello = class _Hello extends _Demo {
-    hello() { fm.log("hello world!"); } //@ 10
-    main() { hello(); } //@ 14
+    hello() { fm.log("hello world!"); }
+    demo() { hello(); }
     async _test() {
     }
 };
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -31,7 +29,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], _Hello.prototype, "main", null);
+], _Hello.prototype, "demo", null);
 _Hello = __decorate([
     feature
 ], _Hello);

@@ -1,6 +1,3 @@
-// ᕦ(ツ)ᕤ
-// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/Demo/Countdown.fm.ts
-// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Countdown.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,18 +7,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { _source } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/test.js";
-_source("/Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Countdown.md");
-import { feature, on, before, fm } from "/Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/util/fm.js";
+// ᕦ(ツ)ᕤ
+// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/Demo/Countdown.fm.ts
+// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Countdown.md
+import { feature, def, before, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Countdown = class _Countdown extends _Demo {
-    countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); } //@ 10
-    main() { countdown(); } //@ 14
+    countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); }
+    demo() { countdown(); }
     async _test() {
     }
 };
 __decorate([
-    on,
+    def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -31,7 +29,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], _Countdown.prototype, "main", null);
+], _Countdown.prototype, "demo", null);
 _Countdown = __decorate([
     feature
 ], _Countdown);

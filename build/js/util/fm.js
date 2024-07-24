@@ -101,7 +101,7 @@ class MetaFeature {
         let parent = this.parent;
         let enabled = this.enabled;
         while (parent && enabled) {
-            enabled && (enabled = parent.enabled);
+            enabled &&= parent.enabled;
             parent = parent.parent;
         }
         return enabled;
@@ -290,6 +290,7 @@ function listParams(func) {
 export class FeatureManager {
     constructor() {
         this.isDebugging = false;
+        this.sourcePath = "";
     }
     // disable one or more features
     disable(featureNames) {
@@ -625,6 +626,17 @@ export class FeatureManager {
             catch (error) { }
         }
         return String(arg);
+    }
+    //-------------------------------------------------------------------------
+    // fnf-specific functions: set source file, output to console, assert
+    _source(path) { this.sourcePath = path; }
+    _output(value, line) {
+        console.log(value, `(${this.sourcePath}:${line})`);
+    }
+    _assert(value, expected, line) {
+        if (value != expected) {
+            console.error(`expected ${expected}, got ${value} (${this.sourcePath}:${line})`);
+        }
     }
     //-------------------------------------------------------------------------
     // low-level function management in module (=global) scope

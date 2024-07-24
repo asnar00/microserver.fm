@@ -1,5 +1,22 @@
 # scribbles
 
+so the process is:
+
+1- when you process a file, call "file declares symbol".
+
+
+
+-------------------------------------------------------------
+
+Summary of yesterday's work:
+- fnf now generates correct declarations
+- new concept for hello-world demo
+- idea of str<T> capturing sequential and parallel values
+- idea of making log into out$
+- editor format for features 
+
+--------------------------------------------------------------
+
 another blinding flash of light: 
 everything becomes simpler if we think of everything as a function returning a stream.
 
@@ -23,7 +40,7 @@ I can just compile that to typescript:
 
     demo(out$ : str<stream>) { out$.push("hello world"); }
 
-AH, we have to write this shit in fm.ts, otherwise chaos. But let's get it building first, then we can use it to write v2.
+AH, we have to write this shit in fm.ts, otherwise chaos. But let's get it building first, then we/someone can use it to write v2.
 
 The thing that I think might be interesting about `str` is if it wasn't just "here is a sequence of T": what if it could also represent parallel invocation.
 
@@ -36,7 +53,6 @@ So like you could click on "out$" somewhere and see this:
     kthxbye.                < Goodbye.goodbye()
 
 So maybe `str<stream>` is kind of like the really complicated logging stuff - there's actually something super interesting there. That's the core data structure: the stream.
-
 
     - captures time sequence
     - captures parallel invocation of stuff

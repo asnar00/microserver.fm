@@ -3,9 +3,9 @@
 // feature-modular server
 // author: asnaroo
 
-import * as os from "./util/os.ts";
-import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.ts";
-import * as shared from "./shared.fm.ts";
+import * as os from "./util/os.js";
+import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.js";
+import * as shared from "./shared.fm.js";
 
 //------------------------------------------------------------------------------
 // Server listens on port 8000 but only returns "not found" for now
@@ -17,14 +17,14 @@ declare const start_server: () => Promise<void>;
 
 @feature class _Server extends _Feature {
     @def async not_found() : Promise<Response> {
-        log("not_found!");
+        fm.log("not_found!");
         return new Response("Not found", { status: 404 });
     }
     @def async handle_request(req: Request): Promise<Response|undefined> {
         return not_found();
     }
     @def async receive_request(req: Request): Promise<Response|undefined> {
-        log(req.method, req.url);
+        fm.log(req.method, req.url);
         return handle_request(req);
     }
     @def async start_server() {
@@ -55,7 +55,7 @@ declare const mime_type: (path: string) => string;
     @def async serve_file(req: Request): Promise<Response|undefined> {
         let path = translate_path(req.url);
         if (path) {
-            log(path.replace(_Get.rootFolder, ""));
+            fm.log(path.replace(_Get.rootFolder, ""));
             let content = os.readFile(path);
             let type = mime_type(path); 
             return new Response(content, { headers: { "Content-Type": type } });
@@ -92,7 +92,7 @@ declare const mime_type: (path: string) => string;
         if (path.endsWith(".js") || path.endsWith(".js.map")) {
             path = path.replace(_Get.publicFolder, _GetJS.jsFolder);
         } else if (path.endsWith(".ts")) {
-            log("ts path:", path);
+            fm.log("ts path:", path);
             path = path.replace("public/", "");
         }
         return path;
@@ -111,7 +111,7 @@ declare const call_function: (req: Request) => Promise<Response|undefined>;
         let func = fm.getModuleScopeFunction(functionName);
         if (func && typeof func === 'function') {
             console.log("calling:", functionName, "with", params);
-            const logResult = await log_async(func, ...Object.values(params));
+            const logResult = await fm.log_async(func, ...Object.values(params));
             const response = { result: logResult.result, log: logResult.log };
             return new Response(JSON.stringify(response), { headers: { "Content-Type": "application/json" }, status: 200 });
         } else {

@@ -4,9 +4,13 @@
 // this should actually all be fm.ts!!!
 // author: asnaroo
 
-import * as os from "./os.ts";
+import * as os from "./os.js";
 
-const cwd = os.cwd();
+const s_cwd = os.cwd();
+const s_parentFolder = os.dirname(s_cwd);
+const s_buildFolder = s_parentFolder.replace("source", "build/fnf");
+let s_declarations : Map<string, Declaration> = new Map();
+let s_sourceMap : Map<string, number[]> = new Map();
 
 // Check if a filename has been provided as an argument
 if (os.nArgs() < 1) {
@@ -16,6 +20,10 @@ if (os.nArgs() < 1) {
 
 function fnfToTsFilename(fnfFilename: string) : string {
     return fnfFilename.replaceAll(".md", ".fm.ts").replaceAll("/fnf/", "/ts/fnf/");
+}
+
+function tsToFnfFilename(tsFilename: string) : string {
+    return tsFilename.replaceAll(".fm.ts", ".md").replaceAll("/ts/fnf/", "/fnf/");
 }
 
 class Declaration {
@@ -51,18 +59,42 @@ function getDeclarations(code: string) : Declaration[] {
     let declarations : Declaration[] = [];
     for (const match of code.matchAll(regex)) {
         const keyword = match[1];
-        const funcName = match[2];
-        const funcParams = match[3];
-        const funcResult = match[4] || 'void'; 
-        declarations.push(new Declaration(keyword, funcName, funcParams, funcResult));
+        if (keyword == "def") {
+            const funcName = match[2];
+            const funcParams = match[3];
+            const funcResult = match[4] || 'void'; 
+            declarations.push(new Declaration(keyword, funcName, funcParams, funcResult));
+        }
     }
     return declarations;
 }
 
-function fixFeatureCode(code: string, filename: string) : string {
-    const allTsFile = cwd + "/fnf/all.d.ts";
-    let importStr = `/// <reference path="${allTsFile}" />\nimport { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${cwd}/util/fm.js";`;
+// look through code, find all function names from the declarations so far
+function findFunctions(code: string): string {
+    let handled: string[] = [];
+    let result: string = "";
+    // regexp that matches any alphaNumberic word followed by "(", but not preceded by a "."
+    const regex = /(?<!\.)\b(\w+)\(/g;
+    // find all matches
+    const results = [];
+    for (const match of code.matchAll(regex)) {
+        const funcName = match[1];
+        if (!handled.includes(funcName)) {
+            handled.push(funcName);
+            if (s_declarations.has(funcName)) {
+                const decl : Declaration = s_declarations.get(funcName)!;
+                result += decl.toString() + "\n";
+            } else {
+                console.log("Function not found", funcName);
+            }
+        }
+    }
+    return result;
+}
 
+function fixFeatureCode(code: string, filename: string) : string {
+    const relPath = os.relativePath(filename, s_cwd);
+    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${relPath}/util/fm.js";`;
     // extract feature names
     const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
     if (match) {
@@ -89,11 +121,14 @@ function fixFeatureCode(code: string, filename: string) : string {
     code = code.replace(/^\s*struct\b/gm, '@struct');
     code = code.replace(/^\s*extend\b/gm, '@extend');
    
-    const dtsFilename = filename.replaceAll(".fm.ts", ".fm.d.ts");
-    const declarations = getDeclarations(code).map(d => d.toString()).join("\n");
-    os.writeFile(dtsFilename, declarations);
+    const declarations = getDeclarations(code);
+    for(const decl of declarations) {
+        s_declarations.set(decl.funcName, decl);
+    }
 
-    code = importStr + "\n\n" + code;
+    const functionDecls = findFunctions(code);
+
+    code = importStr + "\n\n" + functionDecls + "\n" + code;
     return code;
 }
 
@@ -101,7 +136,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     const filename = fnfToTsFilename(mdFilename);
     let lineMap : number[] = [];        // maps 0-based output line number to markdown line number
     let testLineMap : number[] = [];    // maps test lines to markdown line numbers
-    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename}\n// created from ${mdFilename}\n`;
+    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename.replaceAll(s_parentFolder, "")}\n// created from ${mdFilename.replaceAll(s_parentFolder, "")}\n`;
     let code = "";
     let testCode = "";
     // split markdown into lines, test cases separated into testCode
@@ -131,7 +166,6 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     code = code.split("\n").map((line, i) => lineMap[i] ? `${line} //@ ${lineMap[i]}` : line).join("\n");
     testCode = testCode.split("\n").map((line, i) => testLineMap[i] ? `${line} //@ ${testLineMap[i]}` : line).join("\n");
     
-    code = `fm._source("${mdFilename}");\n\n` + code;
     code = fixFeatureCode(code, filename);
 
     const testName = os.basename(filename).replaceAll(".fm.ts", "") + "_test";
@@ -144,14 +178,29 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     } else {
         code += `\nexport async function ${testName}() {\n` + testCode + "}\n";
     }
-    return prefix + code;
+
+    // update the source map
+    clearSourceMaps(filename);
+    let result = prefix + code;
+    const resultLines = result.split("\n");
+    for(let iLine=0; iLine < resultLines.length; iLine++) {
+        let resultLine = resultLines[iLine];
+        const iComment = resultLine.indexOf("//@ ");
+        if (iComment >= 0) {
+            const originalLine = parseInt(resultLine.substring(iComment+4));
+            setSourceMap(filename, iLine+1, originalLine);
+            resultLine = resultLine.substring(0, iComment);
+            resultLines[iLine] = resultLine;
+        }
+    }
+    return resultLines.join("\n");
 }
 
 async function processFile(filename: string, sourceFile: string) {
     const outFile = fnfToTsFilename(filename);
-    const outDate = os.datestamp(outFile);
-    const sourceDate = os.datestamp(sourceFile);
-    if (sourceDate > outDate || os.datestamp(filename) > outDate) {
+    const outDate = os.lastWriteDate(outFile);
+    const sourceDate = os.lastWriteDate(sourceFile);
+    if (sourceDate > outDate || os.lastWriteDate(filename) > outDate) {
         console.log(`Processing ${filename}`);
         const markdown = os.readFile(filename);
         const code = convertMarkdownToCode(markdown, filename);
@@ -208,48 +257,86 @@ async function buildFile(filename: string) : Promise<string>{
     return cmdOut.output;
 }
 
-async function mergeDeclarations(folder: string) {
-    console.log("Merging declarations in", folder);
-    const files = await os.allFilesInFolderRec(folder, ".fm.d.ts");
-    let declarations : any = {};  // map name => declaration string
-    for(const file of files) {
-        console.log("  Reading", file);
-        const decl = os.readFile(file);
-        const lines = decl.split("\n");
-        for(const line of lines) {
-            if (line.trim() != "") {
-                const decl = new Declaration("", "", "", "");
-                decl.fromDeclString(line);
-                declarations[decl.funcName] = decl.toString();
-            }
-        }
-    }
-    let declStrings = "";
-    for(const key in declarations) {
-        declStrings += declarations[key] + "\n";
-    }
-    const outFile = folder + "/all.d.ts";
-    console.log("Writing", outFile);
-    os.writeFile(outFile, declStrings);
-}
-
 async function processFolder(folder: string) {
     console.log("Processing folder", folder);
     const sourceFile = folder.replaceAll("/fnf", "/ts/util/fnf.ts");
-    const files = await os.allFilesInFolderRec(folder, ".md");
+    let files = await os.allFilesInFolderRec(folder, ".md");
+    files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
     for(const file of files) {
         console.log("Checking", file.replaceAll(folder+"/", ""));
         await processFile(file, sourceFile);
     }
-    const outFolder = folder.replaceAll("/fnf", "/ts/fnf");
-    await mergeDeclarations(outFolder);
+}
+
+function saveDeclarations() {
+    const decls : string[] = [];
+    for(const [key, value] of s_declarations) {
+        decls.push(value.toString());
+    }
+    os.writeFile(s_buildFolder + "/declarations.d.ts", decls.join("\n"));
+}
+
+function loadDeclarations() {
+    const declFile = s_buildFolder + "/declarations.d.ts";
+    if (os.fileExists(declFile)) {
+        const decls = os.readFile(declFile).split("\n");
+        for(const decl of decls) {
+            const d = new Declaration("", "", "", "");
+            d.fromDeclString(decl);
+            s_declarations.set(d.funcName, d);
+        }
+    }
+}
+
+function clearSourceMaps(filename: string): void {
+    const fname = filename.replaceAll(s_parentFolder, "");
+    s_sourceMap.forEach((value, key) => {
+        if (key.includes(fname)) {
+            s_sourceMap.delete(key);
+        }
+    });
+}
+
+function setSourceMap(tsFile: string, tsLine: number, mdLine: number) {
+    tsFile = tsFile.replaceAll(s_parentFolder, "");
+    let lines: number[] = s_sourceMap.get(tsFile) || [];
+    if (tsLine >= lines.length) {
+        lines = lines.concat(new Array(tsLine - lines.length + 1).fill(0));
+    }
+    lines[tsLine] = mdLine;
+    s_sourceMap.set(tsFile, lines);
+}
+
+function getSourceMap(tsFile: string, tsLine: number) : string {
+    const mdFile = tsToFnfFilename(tsFile);
+    tsFile = tsFile.replaceAll(s_parentFolder, "");
+    const lines: number[] = s_sourceMap.get(tsFile) || [];
+    if (tsLine < lines.length) { return `${mdFile}:${lines[tsLine]}`; }
+    return `${tsFile}:${tsLine}`; // not found
+}
+
+function saveSourceMap(jsonFilename: string) {
+    const json = JSON.stringify(Array.from(s_sourceMap.entries()));
+    os.writeFile(jsonFilename, json);
+}
+
+function loadSourceMap(jsonFilename: string) {
+    if (os.fileExists(jsonFilename)) {
+        const json = os.readFile(jsonFilename);
+        const entries = JSON.parse(json);
+        s_sourceMap = new Map(entries);
+    }
 }
 
 async function main() {
-    console.log("cwd", cwd);
-    const folder = cwd.replace("/ts", "/fnf");
+    console.log("cwd", s_cwd);
+    const folder = s_cwd.replace("/ts", "/fnf");
     console.log("folder", folder);
+    loadSourceMap(s_buildFolder + "/sourceMap.json");
+    loadDeclarations();
     await processFolder(folder);
+    saveDeclarations();
+    saveSourceMap(s_buildFolder + "/sourceMap.json");
     //const filename = os.arg(0);
     //const outFile = await processFile(filename);
     //const result = await buildFile(outFile);
