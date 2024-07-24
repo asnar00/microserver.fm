@@ -211,13 +211,11 @@ function writeImportFile(mdFilename: string) {
     const importFile = os.relativePath(importFileOut, fnfToTsFilename(mdFilename).replaceAll(".ts", ".js"));
     let importStr = `import { _${featureName} } from '${importFile}';`;
     const subFolder = mdFilename.replace(".md", "");
-    console.log("subFolder", subFolder);
     if (os.isDirectory(subFolder)) {
         const files = os.filesInFolder(subFolder);
         // sort files by ascending creation date
         files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
         for(const file of files) {
-            console.log("file", file, "created:", os.creationDate(file));
             const subFeatureName = os.basename(file).replaceAll(".md", "");
             importStr += `\nimport './${subFeatureName}.js';`;
         }
@@ -226,7 +224,6 @@ function writeImportFile(mdFilename: string) {
 }
 
 function writeImportAllFile() {
-    console.log("writeImportAllFile");
     const fnfFolder = s_parentFolder + "/fnf";
     let files = os.filesInFolder(fnfFolder);
     files = files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
@@ -235,7 +232,6 @@ function writeImportAllFile() {
         const featureName = os.basename(file).replaceAll(".md", "");
         importStr += `import './${featureName}.fm.js';\n`;
     }
-    console.log(importStr);
     const importOutFile = s_importFolder + "/all.js";
     os.writeFile(importOutFile, importStr);
 }
