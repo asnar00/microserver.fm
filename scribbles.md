@@ -1,9 +1,10 @@
 # scribbles
 
-so the process is:
+Summary of today's work:
 
-1- when you process a file, call "file declares symbol".
-
+- source map as a map rather than in the code
+- generate import_FeatureName.ts files that import everything in the right order
+- generate import/all.js 
 
 
 -------------------------------------------------------------

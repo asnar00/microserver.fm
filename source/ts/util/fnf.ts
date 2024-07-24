@@ -208,7 +208,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
 
 function writeImportFile(mdFilename: string) {
     const featureName = os.basename(mdFilename).replaceAll(".md", "");
-    const importFileOut = s_importFolder + `/${featureName}.fm.js`;
+    const importFileOut = s_importFolder + `/${featureName}.fm.ts`;
     const importFile = os.relativePath(importFileOut, fnfToTsFilename(mdFilename).replaceAll(".ts", ".js"));
     let importStr = `import { _${featureName} } from '${importFile}';`;
     const subFolder = mdFilename.replace(".md", "");
@@ -233,7 +233,7 @@ function writeImportAllFile() {
         const featureName = os.basename(file).replaceAll(".md", "");
         importStr += `import './${featureName}.fm.js';\n`;
     }
-    const importOutFile = s_importFolder + "/all.js";
+    const importOutFile = s_importFolder + "/all.ts";
     os.writeFile(importOutFile, importStr);
 }
 
