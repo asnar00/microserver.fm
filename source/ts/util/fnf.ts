@@ -145,7 +145,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     const filename = fnfToTsFilename(mdFilename);
     let lineMap : number[] = [];        // maps 0-based output line number to markdown line number
     let testLineMap : number[] = [];    // maps test lines to markdown line numbers
-    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename.replaceAll(s_parentFolder, "")}\n// created from ${mdFilename.replaceAll(s_parentFolder, "")}\n`;
+    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename.replaceAll(s_parentFolder, "")}\n// created from ${mdFilename.replaceAll(s_parentFolder, "")}\n\n`;
     let code = "";
     let testCode = "";
     // split markdown into lines, test cases separated into testCode
@@ -178,14 +178,15 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     code = fixFeatureCode(code, filename);
 
     const testName = os.basename(filename).replaceAll(".fm.ts", "") + "_test";
+    const testSourceLine = `    fm._source("${mdFilename.replaceAll(s_parentFolder, "")}");`;
     if (code.indexOf("@feature") >= 0) {
         // find index of last "}" in code
         let i = code.length-1; while(i >= 0 && code[i] != "}") i--;
         // insert test code before last "}"
-        testCode = "async _test() {\n" + testCode + "}\n";
+        testCode = `async _test() {\n${testSourceLine}\n${testCode}}\n`;
         code = code.substring(0, i) + testCode + code.substring(i);
     } else {
-        code += `\nexport async function ${testName}() {\n` + testCode + "}\n";
+        code += `\nexport async function ${testName}() {\n${testSourceLine}\n${testCode}}\n"`;
     }
 
     // update the source map

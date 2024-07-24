@@ -1,6 +1,7 @@
 // ᕦ(ツ)ᕤ
 // /ts/fnf/Demo/Goodbye.fm.ts
 // created from /fnf/Demo/Goodbye.md
+
 import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 
@@ -13,5 +14,6 @@ declare const demo: () => void;
 @after demo() { goodbye(); } 
 
 async _test() {
+    fm._source("/fnf/Demo/Goodbye.md");
 }
 }

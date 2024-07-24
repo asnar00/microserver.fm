@@ -1,6 +1,7 @@
 // ᕦ(ツ)ᕤ
 // /ts/fnf/Demo/Countdown.fm.ts
 // created from /fnf/Demo/Countdown.md
+
 import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 
@@ -12,5 +13,6 @@ declare const demo: () => void;
 @before demo() { countdown(); } 
 
 async _test() {
+    fm._source("/fnf/Demo/Countdown.md");
 }
 }

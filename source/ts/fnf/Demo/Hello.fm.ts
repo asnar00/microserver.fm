@@ -1,6 +1,7 @@
 // ᕦ(ツ)ᕤ
 // /ts/fnf/Demo/Hello.fm.ts
 // created from /fnf/Demo/Hello.md
+
 import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 
@@ -12,5 +13,8 @@ declare const demo: () => void;
 @on demo() { hello(); } 
 
 async _test() {
+    fm._source("/fnf/Demo/Hello.md");
+    fm._assert(await demo(), "you stinka!", 18); 
+    fm._output(await demo(), 19); 
 }
 }

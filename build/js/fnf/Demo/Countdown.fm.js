@@ -1,3 +1,6 @@
+// ᕦ(ツ)ᕤ
+// /ts/fnf/Demo/Countdown.fm.ts
+// created from /fnf/Demo/Countdown.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,15 +10,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-// ᕦ(ツ)ᕤ
-// /ts/fnf/Demo/Countdown.fm.ts
-// created from /fnf/Demo/Countdown.md
 import { feature, def, before, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Countdown = class _Countdown extends _Demo {
     countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); }
     demo() { countdown(); }
     async _test() {
+        fm._source("/fnf/Demo/Countdown.md");
     }
 };
 __decorate([

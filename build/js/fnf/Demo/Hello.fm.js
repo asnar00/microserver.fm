@@ -1,3 +1,6 @@
+// ᕦ(ツ)ᕤ
+// /ts/fnf/Demo/Hello.fm.ts
+// created from /fnf/Demo/Hello.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -7,15 +10,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-// ᕦ(ツ)ᕤ
-// /ts/fnf/Demo/Hello.fm.ts
-// created from /fnf/Demo/Hello.md
 import { feature, def, on, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Hello = class _Hello extends _Demo {
     hello() { fm.log("hello world!"); }
     demo() { hello(); }
     async _test() {
+        fm._source("/fnf/Demo/Hello.md");
+        fm._assert(await demo(), "you stinka!", 18);
+        fm._output(await demo(), 19);
     }
 };
 __decorate([
