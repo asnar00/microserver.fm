@@ -8,8 +8,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 // ᕦ(ツ)ᕤ
-// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/Demo/Countdown.fm.ts
-// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Countdown.md
+// /ts/fnf/Demo/Countdown.fm.ts
+// created from /fnf/Demo/Countdown.md
 import { feature, def, before, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Countdown = class _Countdown extends _Demo {

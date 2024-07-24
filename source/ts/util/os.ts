@@ -65,7 +65,6 @@ export class CmdOutput {
 }
 
 export async function runCommand(cmdAndArgs: string[]) : Promise<CmdOutput> {
-    console.log("runCommand", cmdAndArgs);
     const cmd = Deno.run({
         cmd: cmdAndArgs,  // Command and arguments in an array
         stdout: "piped",  // Capture standard output
@@ -103,11 +102,13 @@ export function creationDate(file: string) : number {
 }
 
 export function filesInFolder(dirPath: string): string[] {
-    const files: { name: string, isFile: boolean }[] = [];
+    const files: string[] = [];
     for (const dirEntry of Deno.readDirSync(dirPath)) {
-        files.push({ name: dirEntry.name, isFile: dirEntry.isFile });
+        if (dirEntry.isFile) {
+            files.push(dirPath + "/" + dirEntry.name);
+        }
     }
-    return files.map(file => file.name);
+    return files;
 }
 
 export function isDirectory(dirPath: string) : boolean {
@@ -121,7 +122,6 @@ export function fileExists(filePath: string) : boolean {
 
 export function relativePath(fromPath: string, toPath: string) : string {
     if (!isDirectory(fromPath)) { fromPath = dirname(fromPath); }
-    if (!isDirectory(toPath)) { toPath = dirname(toPath); }
     return deno_path.relative(fromPath, toPath);
 }
 

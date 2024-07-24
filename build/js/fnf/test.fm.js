@@ -1,6 +1,6 @@
 // ᕦ(ツ)ᕤ
-// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/test.fm.ts
-// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/test.md
+// /ts/fnf/test.fm.ts
+// created from /fnf/test.md
 import { fm } from "../util/fm.js";
 function main() {
     console.log("hello world");

@@ -8,8 +8,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 // ᕦ(ツ)ᕤ
-// /Users/asnaroo/Desktop/experiments/microserver.fm/source/ts/fnf/Demo/Hello.fm.ts
-// created from /Users/asnaroo/Desktop/experiments/microserver.fm/source/fnf/Demo/Hello.md
+// /ts/fnf/Demo/Hello.fm.ts
+// created from /fnf/Demo/Hello.md
 import { feature, def, on, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 let _Hello = class _Hello extends _Demo {

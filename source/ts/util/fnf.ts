@@ -6,11 +6,20 @@
 
 import * as os from "./os.js";
 
+const s_verbose = false;
+
+function vlog(...args: any[]) {
+    if (s_verbose) { console.log(...args); }
+}
+
 const s_cwd = os.cwd();
 const s_parentFolder = os.dirname(s_cwd);
 const s_buildFolder = s_parentFolder.replace("source", "build/fnf");
+const s_importFolder = s_parentFolder + "/ts/import";
+console.log("import folder", s_importFolder);
 let s_declarations : Map<string, Declaration> = new Map();
 let s_sourceMap : Map<string, number[]> = new Map();
+
 
 // Check if a filename has been provided as an argument
 if (os.nArgs() < 1) {
@@ -48,7 +57,7 @@ class Declaration {
             this.funcParams = match[2];
             this.funcResult = match[3];
         } else {
-            console.log("No match found:", declString);
+            vlog("No match found:", declString);
         }
     }
 }
@@ -85,7 +94,7 @@ function findFunctions(code: string): string {
                 const decl : Declaration = s_declarations.get(funcName)!;
                 result += decl.toString() + "\n";
             } else {
-                console.log("Function not found", funcName);
+                vlog("Function not found:", funcName);
             }
         }
     }
@@ -196,24 +205,57 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     return resultLines.join("\n");
 }
 
-async function processFile(filename: string, sourceFile: string) {
+function writeImportFile(mdFilename: string) {
+    const featureName = os.basename(mdFilename).replaceAll(".md", "");
+    const importFileOut = s_importFolder + `/${featureName}.fm.js`;
+    const importFile = os.relativePath(importFileOut, fnfToTsFilename(mdFilename).replaceAll(".ts", ".js"));
+    let importStr = `import { _${featureName} } from '${importFile}';`;
+    const subFolder = mdFilename.replace(".md", "");
+    console.log("subFolder", subFolder);
+    if (os.isDirectory(subFolder)) {
+        const files = os.filesInFolder(subFolder);
+        // sort files by ascending creation date
+        files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
+        for(const file of files) {
+            console.log("file", file, "created:", os.creationDate(file));
+            const subFeatureName = os.basename(file).replaceAll(".md", "");
+            importStr += `\nimport './${subFeatureName}.js';`;
+        }
+    }
+    os.writeFile(importFileOut, importStr);
+}
+
+function writeImportAllFile() {
+    console.log("writeImportAllFile");
+    const fnfFolder = s_parentFolder + "/fnf";
+    let files = os.filesInFolder(fnfFolder);
+    files = files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
+    let importStr = "";
+    for(const file of files) {
+        const featureName = os.basename(file).replaceAll(".md", "");
+        importStr += `import './${featureName}.fm.js';\n`;
+    }
+    console.log(importStr);
+    const importOutFile = s_importFolder + "/all.js";
+    os.writeFile(importOutFile, importStr);
+}
+
+function processFile(filename: string, sourceFile: string) {
     const outFile = fnfToTsFilename(filename);
     const outDate = os.lastWriteDate(outFile);
     const sourceDate = os.lastWriteDate(sourceFile);
     if (sourceDate > outDate || os.lastWriteDate(filename) > outDate) {
-        console.log(`Processing ${filename}`);
+        vlog(`  Processing ${filename}`);
         const markdown = os.readFile(filename);
         const code = convertMarkdownToCode(markdown, filename);
         os.writeFile(outFile, code);
+        writeImportFile(filename);
     }
     return outFile;
 }
 
 function processBuildLog(log: string) : string {
     const lines : string[] = log.split("\n");
-    let sourcePath = "";
-    let sourceLines : string[] = [];
-    let mdPath = "";
     let out = "";
     for(const line of lines) {
         const index = line.indexOf(": error");
@@ -227,43 +269,26 @@ function processBuildLog(log: string) : string {
             const iComma = line.indexOf(",", i);
             const lineNumber = parseInt(line.substring(i+1, iComma));
             const colNumber = parseInt(line.substring(iComma+1, index-1));
-            if (filename != sourcePath) {
-                sourcePath = os.resolve(filename);
-                sourceLines = os.readFile(sourcePath).split("\n");
-                // find the line that starts with "fm.source" using findIndex
-                const iSource = sourceLines.findIndex(l => l.startsWith("_source"));
-                if (iSource >= 0) {
-                    const iQuote = sourceLines[iSource].indexOf("\"");
-                    const iEndQuote = sourceLines[iSource].indexOf("\"", iQuote+1);
-                    mdPath = sourceLines[iSource].substring(iQuote+1, iEndQuote);
-                } else {
-                    mdPath = sourcePath;
-                }
-            }
-            const sourceLine = sourceLines[lineNumber-1];
-            const iComment = sourceLine.indexOf("//@ ");
-            if (iComment >= 0) {
-                const originalLine = parseInt(sourceLine.substring(iComment+4));
-                outLine = `${mdPath}(${originalLine},${colNumber+4}): error: ${line.substring(index+7)}`;
-            }
+            const [mdPath, mdLine]= getSourceMap(filename, lineNumber);
+            outLine = `${mdPath}(${mdLine},${colNumber+4}): error: ${line.substring(index+7)}`;
         }
         out += outLine + "\n";
     }
-    return out;
+    return out.trim();
 }
 
-async function buildFile(filename: string) : Promise<string>{
-    const cmdOut = await os.runCommand(["tsc", filename]);
+async function buildAllFiles() : Promise<string>{
+    vlog("----- build -----");
+    const cmdOut = await os.runCommand(["tsc"]);
     return cmdOut.output;
 }
 
 async function processFolder(folder: string) {
-    console.log("Processing folder", folder);
+    vlog("Processing folder", folder);
     const sourceFile = folder.replaceAll("/fnf", "/ts/util/fnf.ts");
     let files = await os.allFilesInFolderRec(folder, ".md");
     files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
     for(const file of files) {
-        console.log("Checking", file.replaceAll(folder+"/", ""));
         await processFile(file, sourceFile);
     }
 }
@@ -307,12 +332,13 @@ function setSourceMap(tsFile: string, tsLine: number, mdLine: number) {
     s_sourceMap.set(tsFile, lines);
 }
 
-function getSourceMap(tsFile: string, tsLine: number) : string {
+function getSourceMap(tsFile: string, tsLine: number) : [string, number] {
+    tsFile = "/ts/" + tsFile;
     const mdFile = tsToFnfFilename(tsFile);
     tsFile = tsFile.replaceAll(s_parentFolder, "");
     const lines: number[] = s_sourceMap.get(tsFile) || [];
-    if (tsLine < lines.length) { return `${mdFile}:${lines[tsLine]}`; }
-    return `${tsFile}:${tsLine}`; // not found
+    if (tsLine < lines.length) { return [mdFile, lines[tsLine]]; }
+    return [tsFile, tsLine]; // not found
 }
 
 function saveSourceMap(jsonFilename: string) {
@@ -329,19 +355,24 @@ function loadSourceMap(jsonFilename: string) {
 }
 
 async function main() {
-    console.log("cwd", s_cwd);
+    vlog("cwd", s_cwd);
     const folder = s_cwd.replace("/ts", "/fnf");
-    console.log("folder", folder);
+    vlog("folder", folder);
     loadSourceMap(s_buildFolder + "/sourceMap.json");
     loadDeclarations();
     await processFolder(folder);
     saveDeclarations();
     saveSourceMap(s_buildFolder + "/sourceMap.json");
-    //const filename = os.arg(0);
-    //const outFile = await processFile(filename);
-    //const result = await buildFile(outFile);
-    //const log = processBuildLog(result);
-    //console.log(log);
+    writeImportAllFile();
+    const result = await buildAllFiles();
+    const log = processBuildLog(result);
+    if (log != "") {
+        console.log("--------- build errors ---------");
+        console.log(log);
+        console.log("--------------------------------");
+    } else {
+        console.log("--------- build successful ---------");
+    }
 }
 
 main();
