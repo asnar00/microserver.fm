@@ -1,6 +1,6 @@
 // ᕦ(ツ)ᕤ
-// /ts/fnf/Demo/Goodbye.fm.ts
-// created from /fnf/Demo/Goodbye.md
+// /ts/fnf/Demo/Countdown.fm.ts
+// created from /fnf/Demo/Countdown.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,14 +10,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { feature, def, after, fm } from "../../util/fm.js";
+import { feature, def, before, fm } from "../../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
-export function _import() { console.log("Goodbye._import()"); }
-let _Goodbye = class _Goodbye extends _Demo {
-    goodbye() { console.log("kthxbye."); }
-    async demo() { goodbye(); }
+let _Countdown = class _Countdown extends _Demo {
+    countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); }
+    demo() { countdown(); }
     async _test() {
-        fm._source("/fnf/Demo/Goodbye.md");
+        fm._source("/fnf/Demo/Countdown.md");
     }
 };
 __decorate([
@@ -25,15 +24,18 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], _Goodbye.prototype, "goodbye", null);
+], _Countdown.prototype, "countdown", null);
 __decorate([
-    after,
+    before,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], _Goodbye.prototype, "demo", null);
-_Goodbye = __decorate([
+    __metadata("design:returntype", void 0)
+], _Countdown.prototype, "demo", null);
+_Countdown = __decorate([
     feature
-], _Goodbye);
-export { _Goodbye };
-//# sourceMappingURL=Goodbye.fm.js.map
+], _Countdown);
+export { _Countdown };
+export function _loadModule() {
+    console.log("Countdown._loadModule");
+}
+//# sourceMappingURL=Countdown.fm.js.map

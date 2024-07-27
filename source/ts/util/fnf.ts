@@ -137,7 +137,10 @@ function fixFeatureCode(code: string, filename: string) : string {
 
     const functionDecls = findFunctions(code);
 
-    code = importStr + "\n\n" + functionDecls + "\n" + code;
+    const featureName = os.basename(filename).replaceAll(".fm.ts", "");
+    const loadModuleCode = `export function _import() { console.log("${featureName}._import()"); }`;
+
+    code = importStr + "\n\n" + loadModuleCode + "\n\n" + functionDecls + "\n" + code;
     return code;
 }
 
@@ -145,7 +148,7 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     const filename = fnfToTsFilename(mdFilename);
     let lineMap : number[] = [];        // maps 0-based output line number to markdown line number
     let testLineMap : number[] = [];    // maps test lines to markdown line numbers
-    const prefix = `// ᕦ(ツ)ᕤ\n// ${filename.replaceAll(s_parentFolder, "")}\n// created from ${mdFilename.replaceAll(s_parentFolder, "")}\n\n`;
+    let prefix = `// ᕦ(ツ)ᕤ\n// ${filename.replaceAll(s_parentFolder, "")}\n// created from ${mdFilename.replaceAll(s_parentFolder, "")}\n\n`;
     let code = "";
     let testCode = "";
     // split markdown into lines, test cases separated into testCode
@@ -218,7 +221,7 @@ function writeImportFile(mdFilename: string) {
         files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
         for(const file of files) {
             const subFeatureName = os.basename(file).replaceAll(".md", "");
-            importStr += `\nimport './${subFeatureName}.js';`;
+            importStr += `\nimport './${subFeatureName}.fm.js';`;
         }
     }
     os.writeFile(importFileOut, importStr);
@@ -246,7 +249,7 @@ function processFile(filename: string, sourceFile: string) {
         const markdown = os.readFile(filename);
         const code = convertMarkdownToCode(markdown, filename);
         os.writeFile(outFile, code);
-        writeImportFile(filename);
+        //writeImportFile(filename);
     }
     return outFile;
 }
@@ -360,7 +363,7 @@ async function main() {
     await processFolder(folder);
     saveDeclarations();
     saveSourceMap(s_buildFolder + "/sourceMap.json");
-    writeImportAllFile();
+    //writeImportAllFile();
     const result = await buildAllFiles();
     const log = processBuildLog(result);
     if (log != "") {

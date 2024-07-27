@@ -1,6 +1,6 @@
 // ᕦ(ツ)ᕤ
-// /ts/fnf/Demo/Goodbye.fm.ts
-// created from /fnf/Demo/Goodbye.md
+// /ts/fnf/Demo/Hello.fm.ts
+// created from /fnf/Demo/Hello.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,14 +10,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { feature, def, after, fm } from "../../util/fm.js";
+import { feature, def, on, fm } from "../../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
-export function _import() { console.log("Goodbye._import()"); }
-let _Goodbye = class _Goodbye extends _Demo {
-    goodbye() { console.log("kthxbye."); }
-    async demo() { goodbye(); }
+let _Hello = class _Hello extends _Demo {
+    hello() { fm.log("hello world!"); }
+    demo() { hello(); }
     async _test() {
-        fm._source("/fnf/Demo/Goodbye.md");
+        fm._source("/fnf/Demo/Hello.md");
+        fm._assert(await demo(), "you stinka!", 18);
+        fm._output(await demo(), 19);
     }
 };
 __decorate([
@@ -25,15 +26,18 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], _Goodbye.prototype, "goodbye", null);
+], _Hello.prototype, "hello", null);
 __decorate([
-    after,
+    on,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], _Goodbye.prototype, "demo", null);
-_Goodbye = __decorate([
+    __metadata("design:returntype", void 0)
+], _Hello.prototype, "demo", null);
+_Hello = __decorate([
     feature
-], _Goodbye);
-export { _Goodbye };
-//# sourceMappingURL=Goodbye.fm.js.map
+], _Hello);
+export { _Hello };
+export function _loadModule() {
+    console.log("Hello._loadModule");
+}
+//# sourceMappingURL=Hello.fm.js.map

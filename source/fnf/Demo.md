@@ -1,5 +1,6 @@
 ᕦ(ツ)ᕤ
 # Feature/Demo
+author: asnaroo
 
 `Demo` is a demo program to test `fnf.ts` (*Feature Normal Form*) - the build system that processes these .md files and spits out working typescript.
 
@@ -7,11 +8,13 @@
 
 Since `Demo` is a "program", it provides a "main" function. We use `replace` because we don't want its definition to run parallel with any other features that might be defined; if you enable `Demo`, then all other features are effectively disabled.
 
-    def demo() { fm.log("ᕦ(ツ)ᕤ"); }
+    def async demo() { console.log("ᕦ(ツ)ᕤ"); }
 
+And here's a test just to see what happens:
 
+    await demo() ==> undefined
 _____
-## children
+## children 
 ____
 
 ### [Hello](./Demo/Hello.md)

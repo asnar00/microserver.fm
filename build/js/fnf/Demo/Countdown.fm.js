@@ -12,9 +12,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { feature, def, before, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
+export function _import() { console.log("Countdown._import()"); }
 let _Countdown = class _Countdown extends _Demo {
-    countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); }
-    demo() { countdown(); }
+    countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); }
+    async demo() { countdown(); }
     async _test() {
         fm._source("/fnf/Demo/Countdown.md");
     }
@@ -29,7 +30,7 @@ __decorate([
     before,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], _Countdown.prototype, "demo", null);
 _Countdown = __decorate([
     feature

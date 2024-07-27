@@ -10,7 +10,6 @@
         "include": ["./src/**/*"]
       }
     },
-    "fmt": {},
-    "importMap": "import_map.json"
+    "fmt": {}
   }
   

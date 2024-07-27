@@ -155,6 +155,7 @@ _metaFeature.initialise("", new _Feature());
 // @feature decorator handler
 export function feature<T extends { new (...args: any[]): {} }>(constructor: T) {
     const className = constructor.name;
+    console.log("@feature", className);
     const prototype = Object.getPrototypeOf(constructor.prototype);
     const superClassConstructor = prototype ? prototype.constructor : null;
     const superClassName = superClassConstructor ? superClassConstructor.name : 'None';

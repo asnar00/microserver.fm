@@ -5,13 +5,15 @@
 import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 
+export function _import() { console.log("Goodbye._import()"); }
+
 declare const goodbye: () => void;
 declare const demo: () => void;
 
 @feature export class _Goodbye extends _Demo { 
  
-@def goodbye() { fm.log("kthxbye."); } 
-@after demo() { goodbye(); } 
+@def goodbye() { console.log("kthxbye."); } 
+@after async demo() { goodbye(); } 
 
 async _test() {
     fm._source("/fnf/Demo/Goodbye.md");

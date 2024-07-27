@@ -5,6 +5,6 @@
 
     feature Goodbye extends Demo;
     
-    def goodbye() { fm.log("kthxbye."); }
+    def goodbye() { console.log("kthxbye."); }
 
-    after demo() { goodbye(); }
+    after async demo() { goodbye(); }

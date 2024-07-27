@@ -5,16 +5,16 @@
 import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "../../util/fm.js";
 import { _Demo } from "../Demo.fm.js";
 
+export function _import() { console.log("Hello._import()"); }
+
 declare const hello: () => void;
 declare const demo: () => void;
 
 @feature export class _Hello extends _Demo { 
-@def hello() { fm.log("hello world!"); } 
-@on demo() { hello(); } 
+@def hello() { console.log("hello world!"); } 
+@replace async demo() { hello(); } 
 
 async _test() {
     fm._source("/fnf/Demo/Hello.md");
-    fm._assert(await demo(), "you stinka!", 18); 
-    fm._output(await demo(), 19); 
 }
 }

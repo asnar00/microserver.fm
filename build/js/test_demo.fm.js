@@ -1,6 +1,3 @@
-// ᕦ(ツ)ᕤ
-// /ts/fnf/Demo.fm.ts
-// created from /fnf/Demo.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,23 +7,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { _Feature, feature, def, fm } from "../util/fm.js";
-export function _import() { console.log("Demo._import()"); }
-let _Demo = class _Demo extends _Feature {
-    async demo() { console.log("ᕦ(ツ)ᕤ"); }
-    async _test() {
-        fm._source("/fnf/Demo.md");
-        fm._assert(await await demo(), undefined, 15);
+function feature(target) {
+    console.log(`${target.name} decorated`);
+}
+let Demo = class Demo {
+    constructor() {
+        console.log('Demo instance created');
     }
 };
-__decorate([
-    def,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], _Demo.prototype, "demo", null);
-_Demo = __decorate([
-    feature
-], _Demo);
-export { _Demo };
-//# sourceMappingURL=Demo.fm.js.map
+Demo = __decorate([
+    feature,
+    __metadata("design:paramtypes", [])
+], Demo);
+export { Demo };
+export function loadModule() {
+    console.log("demo.loadModule");
+}
+console.log("Demo loaded");
+//# sourceMappingURL=test_demo.fm.js.map

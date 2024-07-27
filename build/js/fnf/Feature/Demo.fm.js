@@ -1,6 +1,6 @@
 // ᕦ(ツ)ᕤ
-// /ts/fnf/Demo/Goodbye.fm.ts
-// created from /fnf/Demo/Goodbye.md
+// /ts/fnf/Demo.fm.ts
+// created from /fnf/Demo.md
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -10,14 +10,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { feature, def, after, fm } from "../../util/fm.js";
-import { _Demo } from "../Demo.fm.js";
-export function _import() { console.log("Goodbye._import()"); }
-let _Goodbye = class _Goodbye extends _Demo {
-    goodbye() { console.log("kthxbye."); }
-    async demo() { goodbye(); }
+import { _Feature, feature, def, fm } from "../../util/fm.js";
+let _Demo = class _Demo extends _Feature {
+    demo() { fm.log("ᕦ(ツ)ᕤ"); }
     async _test() {
-        fm._source("/fnf/Demo/Goodbye.md");
+        fm._source("/fnf/Demo.md");
     }
 };
 __decorate([
@@ -25,15 +22,18 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], _Goodbye.prototype, "goodbye", null);
-__decorate([
-    after,
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], _Goodbye.prototype, "demo", null);
-_Goodbye = __decorate([
+], _Demo.prototype, "demo", null);
+_Demo = __decorate([
     feature
-], _Goodbye);
-export { _Goodbye };
-//# sourceMappingURL=Goodbye.fm.js.map
+], _Demo);
+export { _Demo };
+import * as Hello from "./Demo/Hello.fm.js";
+import * as Goodbye from "./Demo/Goodbye.fm.js";
+import * as Countdown from "./Demo/Countdown.fm.js";
+export function _loadModule() {
+    console.log("Demo._loadModule");
+    Hello._loadModule();
+    Goodbye._loadModule();
+    Countdown._loadModule();
+}
+//# sourceMappingURL=Demo.fm.js.map
