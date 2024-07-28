@@ -13,17 +13,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 import { _Feature, feature, def, fm } from "../util/fm.js";
 export function _import() { console.log("Demo._import()"); }
 let _Demo = class _Demo extends _Feature {
-    async demo() { console.log("ᕦ(ツ)ᕤ"); }
+    demo() { console.log("ᕦ(ツ)ᕤ"); }
     async _test() {
         fm._source("/fnf/Demo.md");
-        fm._assert(await await demo(), undefined, 15);
+        fm._assert(await demo(), undefined, 15);
     }
 };
 __decorate([
     def,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", void 0)
 ], _Demo.prototype, "demo", null);
 _Demo = __decorate([
     feature

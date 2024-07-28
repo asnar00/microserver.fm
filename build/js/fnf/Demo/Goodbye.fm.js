@@ -15,7 +15,7 @@ import { _Demo } from "../Demo.fm.js";
 export function _import() { console.log("Goodbye._import()"); }
 let _Goodbye = class _Goodbye extends _Demo {
     goodbye() { console.log("kthxbye."); }
-    async demo() { goodbye(); }
+    demo() { goodbye(); }
     async _test() {
         fm._source("/fnf/Demo/Goodbye.md");
     }
@@ -30,7 +30,7 @@ __decorate([
     after,
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", void 0)
 ], _Goodbye.prototype, "demo", null);
 _Goodbye = __decorate([
     feature

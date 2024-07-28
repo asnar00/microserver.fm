@@ -1,5 +1,171 @@
 # scribbles
 
+
+
+
+___________________________________________________
+
+`fnf` is the key idea here. We should be able to take an fnf document and use it to generate code in any language, or in any combination of languages, using LLMs as the translation engines.
+
+So actually this project should just be called fnf, and it should translate fnf.md files.
+
+Multi-point is just the "icing on the cake".
+So the idea is: we get this (microserver.fm) code working, and then we rewrite fnf from scratch, *in fnf*.
+
+
+___________________________________________________
+
+
+This talk: super important for noobchen.
+
+https://cacm.acm.org/research/a-new-golden-age-for-computer-architecture/#:~:text=Innovations%20like%20domain%2Dspecific%20hardware,development%20will%20lead%20the%20way.
+
+=> heterogenous targets, domain-specific languages, security
+=> drives us towards RISC-V because of the advantage of openness in the long term
+
+so we should be targeting FPGA, GPU, TPU, CPU because machine must contain all the above.
+
+Which means architecture definition is actually the most important thing: make custom silicon for hardware operations. I.e. zero has to also do verilog ??
+
+___________________________________________________
+Notes on the multi-point style experiment for login:
+
+1- "shared VARNAME" means "varname lives on server"
+
+=> any code that manipulates or contains the shared var has to run across client/server.
+
+So the generated rpc code we have now should be something this:
+
+    @feature class _Login extends _Feature {
+        @client @before async run() : Promise<void|undefined> {
+            if (!await login_page()) return;
+        }
+        @client @def login_page() : Promise<boolean> {
+            const entered_email = await get_input_string("please...");
+            return remote(server, try_login)(entered_email);
+        }
+        @server s_allowed_emails : string[] = [];
+        @server @def async try_login(email: string) : Promise<boolean> {
+            const pin = random_pin();
+            if (s_allowed_emails.indexOf(email) >= 0) {
+                await send_pin_to_email(pin, email);
+            }
+            const entered_pin = await remote(_client(), get_pin_from_user)();
+            return (pin == entered_pin);
+        }
+        @server @def async send_pin_to_email(...) { ... }
+
+If a function refers to a shared variable, it's tagged as "must run on server".
+If a function calls anything to do with the dom/browser, then it's tagged as "must run on client".
+Otherwise, it's "uncommitted" => can run on either.
+
+If we're running the code on the client, and we call a server-tagged function, we generate a remote(server, fn)() call and wait for the result.
+Conversely, if we're running the code on the server, and we call a client-tagged function, we generate a remote(client, fn)() call and wait for the result.
+So execution can ping back and forth between the two.
+We can actually implement this using fetch, no websockets required. Which might be sensible really.
+
+This is a super nice abstraction because it makes it really clear what the interaction is.
+
+    feature MyFeature {
+    client:
+        ui: UserInterface = new UserInterface();
+        def login_page() : boolean {
+            const email = input(ui, "enter email address");
+            const pin = try_login(email);
+            if (pin == "") return false;
+            const entered_pin = input(ui, "enter pin");
+            return (pin == entered_pin);
+        }
+        def get_pin_from_user() {
+            return input(ui, "enter pin");
+        }
+    server:
+        users: string[] = [];
+        def try_login(email: string) : string {
+            if (s_users.indexOf(email) >= 0) {
+                const pin = random_pin();
+                send_email_to_pin(pin, email);
+                return pin;
+            }
+            return "";
+        }
+        def send_email_to_pin(...)
+    anywhere:
+        random_pin() {... }
+    }
+
+
+
+    
+
+
+
+
+
+
+__________________________________________________
+
+Today: 
+- got hand-coded imports working. tomorrow: automated.
+- target for monday: ready to write the first actual server feature
+
+Ideas for features:
+
+actually structure by functionality, across client/server boundaries.
+so don't reify server/client status, as the first set of things did.
+more like:
+
+- "to serve a file, we need this on the server"
+- "to do rpc, we need this on the client and this on the server"
+
+This is why I think "roles" need to become first-class citizens of the language.
+
+    client: blahblah
+    server: blahblahblah
+
+We want to see the code for the two locations in the same place, collected by functionality. Otherwise it makes no sense; you're only showing one side of the interaction.
+
+Mucking about with expressing login/authentication logic:
+
+    feature Login extends Feature {
+    client: 
+        before run() {
+            if (!login_page()) return;
+        }
+        def login_page() : boolean {
+            const entered_email = get_input_string("please enter your email address");
+            return try_login(entered_email);
+        }
+
+    server:
+        s_allowed_emails : string[] = [];
+        def try_login(email: string) : boolean {
+            const pin = random_pin();           // 4-digit random pin
+            if (s_allowed_emails.indexOf(email) >= 0) {
+                send_pin_to_email(pin, email);
+            }
+            const entered_pin = get_pin_from_user();
+            return (pin == entered_pin);
+        }
+
+        def send_pin_to_email(pin: string, email: string) { ... }
+    
+    client:
+        def get_pin_from_user(): string {
+            const pin: string = get_input_digits("please enter the 4-digit code we emailed to you", 4);
+            return pin;
+        }
+        def get_input_digits(...) { ... }
+        get get_input_string(...) { ... }
+    }
+
+See: now remote execution goes "downwards" into the language as well. But then again that's always what we wanted. The pattern's interesting though isn't it - we think we can implement it using fm, but it turns out we kind of ... can't.
+
+the fm implementation *itself* wants to be feature modular, as do the tools. It's frustrating that they're not. But non-fm ts is the language we're bootstrapping.
+
+
+--------------------------------------------------------------
+
 Summary of today's work:
 
 - source map as a map rather than in the code

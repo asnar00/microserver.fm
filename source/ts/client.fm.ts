@@ -3,10 +3,10 @@
 // feature-modular server
 // author: asnaroo
 
-import { _Feature, feature, def, replace, on, after, before, make, fm, }  from "./util/fm.js";
-import * as shared from './shared.fm.js';
-import * as browser from './util/browser.js';
-import { Device } from './shared.fm.js';
+import { _Feature, feature, def, replace, on, after, before, make, fm, }  from "./util/fm.ts";
+import * as shared from './shared.fm.ts';
+import * as browser from './util/browser.ts';
+import { Device } from './shared.fm.ts';
 
 addEventListener("load", () => { client(); });
 

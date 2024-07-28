@@ -3,6 +3,7 @@ import { _import as _Hello_import } from "../fnf/Demo/Hello.fm.js";
 import { _import as _Goodbye_import } from "../fnf/Demo/Goodbye.fm.js";
 import { _import as _Countdown_import } from "../fnf/Demo/Countdown.fm.js";
 export function _import() {
+    console.log("yippidy oh I see it's actually working fine");
     _Demo_import();
     _Hello_import();
     _Goodbye_import();

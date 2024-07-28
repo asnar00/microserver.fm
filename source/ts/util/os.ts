@@ -25,6 +25,16 @@ export function writeFile(path: string, content: string) {
     Deno.writeTextFileSync(path, content);
 }
 
+// only writes the file if the contents actually changed. returns true if the file was written, false if the file was not written
+export function writeFileIfChanged(path: string, content: string) : boolean {
+    if (fileExists(path)) {
+        const currentContent = readFile(path);
+        if (currentContent == content) { return false; }
+    }
+    writeFile(path, content);
+    return true;
+}
+
 export function extension(path: string): string {
     return "." + path.split('.').pop() || '';
 }
@@ -125,12 +135,20 @@ export function relativePath(fromPath: string, toPath: string) : string {
     return deno_path.relative(fromPath, toPath);
 }
 
-export async function allFilesInFolderRec(dirPath: string, extension: string): Promise<string[]> {
-    const filesWithExtension: string[] = [];
-    if (extension.startsWith(".")) { extension = extension.substring(1); }
-    for await (const entry of deno_fs.walk(dirPath, { includeDirs: false, exts: [extension] })) {
-        if (entry.isFile) {
-            filesWithExtension.push(entry.path);
+export function allFilesInFolderRec(dirPath: string, extension: string): string[] {
+    let filesWithExtension: string[] = [];
+    if (extension.startsWith(".")) {
+        extension = extension.substring(1);
+    }
+    // Traverse the directory synchronously
+    for (const entry of Deno.readDirSync(dirPath)) {
+        const filePath = `${dirPath}/${entry.name}`;
+        // Check if the entry is a file and has the correct extension
+        if (entry.isFile && entry.name.endsWith(`.${extension}`)) {
+            filesWithExtension.push(filePath);
+        } else if (entry.isDirectory) {
+            // Recursively call if it's a directory
+            filesWithExtension = filesWithExtension.concat(allFilesInFolderRec(filePath, extension));
         }
     }
     return filesWithExtension;

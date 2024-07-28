@@ -4,9 +4,10 @@
 // this should actually all be fm.ts!!!
 // author: asnaroo
 
-import * as os from "./os.js";
+import * as os from "./os.ts";
 
-const s_verbose = false;
+const s_verbose : boolean = false;
+let s_wroteFiles : boolean = false;
 
 function vlog(...args: any[]) {
     if (s_verbose) { console.log(...args); }
@@ -19,13 +20,6 @@ const s_importFolder = s_parentFolder + "/ts/import";
 console.log("import folder", s_importFolder);
 let s_declarations : Map<string, Declaration> = new Map();
 let s_sourceMap : Map<string, number[]> = new Map();
-
-
-// Check if a filename has been provided as an argument
-if (os.nArgs() < 1) {
-    console.error("Usage: deno run --allow-read fnf.fm.ts <filename>");
-    os.exit(1);
-}
 
 function fnfToTsFilename(fnfFilename: string) : string {
     return fnfFilename.replaceAll(".md", ".fm.ts").replaceAll("/fnf/", "/ts/fnf/");
@@ -103,7 +97,7 @@ function findFunctions(code: string): string {
 
 function fixFeatureCode(code: string, filename: string) : string {
     const relPath = os.relativePath(filename, s_cwd);
-    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${relPath}/util/fm.js";`;
+    let importStr = `import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "${relPath}/util/fm.ts";`;
     // extract feature names
     const match = code.match(/feature\s+(\w+)\s*(?:extends\s+(\w+))?/);
     if (match) {
@@ -113,7 +107,7 @@ function fixFeatureCode(code: string, filename: string) : string {
         if (parentFeatureName != "") {
             code = code.replaceAll(parentFeatureName, "_"+parentFeatureName);
             if (parentFeatureName != "Feature") {
-                importStr += `\nimport { _${parentFeatureName} } from "../${parentFeatureName}.fm.js";`;
+                importStr += `\nimport { _${parentFeatureName} } from "../${parentFeatureName}.fm.ts";`;
             }
         }
         // replace feature X [extends Y]; with feature X extends Y {
@@ -209,35 +203,25 @@ function convertMarkdownToCode(markdown: string, mdFilename: string) : string {
     return resultLines.join("\n");
 }
 
-function writeImportFile(mdFilename: string) {
-    const featureName = os.basename(mdFilename).replaceAll(".md", "");
-    const importFileOut = s_importFolder + `/${featureName}.fm.ts`;
-    const importFile = os.relativePath(importFileOut, fnfToTsFilename(mdFilename).replaceAll(".ts", ".js"));
-    let importStr = `import { _${featureName} } from '${importFile}';`;
-    const subFolder = mdFilename.replace(".md", "");
-    if (os.isDirectory(subFolder)) {
-        const files = os.filesInFolder(subFolder);
-        // sort files by ascending creation date
-        files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
-        for(const file of files) {
-            const subFeatureName = os.basename(file).replaceAll(".md", "");
-            importStr += `\nimport './${subFeatureName}.fm.js';`;
-        }
-    }
-    os.writeFile(importFileOut, importStr);
-}
-
 function writeImportAllFile() {
     const fnfFolder = s_parentFolder + "/fnf";
-    let files = os.filesInFolder(fnfFolder);
-    files = files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
     let importStr = "";
-    for(const file of files) {
-        const featureName = os.basename(file).replaceAll(".md", "");
-        importStr += `import './${featureName}.fm.js';\n`;
+    let files : string[] = os.allFilesInFolderRec(fnfFolder, ".md");
+    // sort files into ascending order of creation date
+    files.sort((a, b) => os.creationDate(a) - os.creationDate(b));
+    files = files.map((file) => fnfToTsFilename(file).replaceAll(s_cwd, ".."));
+    let featureNames = files.map((file) => os.basename(file).replaceAll(".fm.ts", ""));
+    for(let i: number=0; i < files.length; i++) {
+        importStr += `import { _${featureNames[i]}, _import as _${featureNames[i]}_import } from "${files[i]}";\n`;
     }
+    importStr += `\nexport function _import() {\n`;
+    for(let i: number=0; i < files.length; i++) {
+        importStr += `    _${featureNames[i]}_import();\n`;
+    }
+    importStr += `}\n`;
+
     const importOutFile = s_importFolder + "/all.ts";
-    os.writeFile(importOutFile, importStr);
+    s_wroteFiles ||= os.writeFileIfChanged(importOutFile, importStr);
 }
 
 function processFile(filename: string, sourceFile: string) {
@@ -248,7 +232,7 @@ function processFile(filename: string, sourceFile: string) {
         vlog(`  Processing ${filename}`);
         const markdown = os.readFile(filename);
         const code = convertMarkdownToCode(markdown, filename);
-        os.writeFile(outFile, code);
+        s_wroteFiles ||= os.writeFileIfChanged(outFile, code);
         //writeImportFile(filename);
     }
     return outFile;
@@ -277,10 +261,22 @@ function processBuildLog(log: string) : string {
     return out.trim();
 }
 
-async function buildAllFiles() : Promise<string>{
+async function buildAllFiles(){
+    if (!s_wroteFiles) {
+        console.log("nothing changed, nothing to build.");
+        return;
+    }
     vlog("----- build -----");
     const cmdOut = await os.runCommand(["tsc"]);
-    return cmdOut.output;
+    const originalLog= cmdOut.output;
+    const log = processBuildLog(originalLog);
+    if (log != "") {
+        console.log("--------- build errors ---------");
+        console.log(log);
+        console.log("--------------------------------");
+    } else {
+        console.log("--------- build successful ---------");
+    }
 }
 
 async function processFolder(folder: string) {
@@ -298,11 +294,11 @@ function saveDeclarations() {
     for(const [key, value] of s_declarations) {
         decls.push(value.toString());
     }
-    os.writeFile(s_buildFolder + "/declarations.d.ts", decls.join("\n"));
+    os.writeFile(s_importFolder + "/declarations.d.ts", decls.join("\n"));
 }
 
 function loadDeclarations() {
-    const declFile = s_buildFolder + "/declarations.d.ts";
+    const declFile = s_importFolder + "/declarations.d.ts";
     if (os.fileExists(declFile)) {
         const decls = os.readFile(declFile).split("\n");
         for(const decl of decls) {
@@ -360,19 +356,12 @@ async function main() {
     vlog("folder", folder);
     loadSourceMap(s_buildFolder + "/sourceMap.json");
     loadDeclarations();
+    s_wroteFiles = false;
     await processFolder(folder);
     saveDeclarations();
     saveSourceMap(s_buildFolder + "/sourceMap.json");
-    //writeImportAllFile();
-    const result = await buildAllFiles();
-    const log = processBuildLog(result);
-    if (log != "") {
-        console.log("--------- build errors ---------");
-        console.log(log);
-        console.log("--------------------------------");
-    } else {
-        console.log("--------- build successful ---------");
-    }
+    writeImportAllFile();
+    await buildAllFiles();
 }
 
 main();

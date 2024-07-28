@@ -3,9 +3,9 @@
 // feature-modular server
 // author: asnaroo
 
-import * as os from "./util/os.js";
-import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.js";
-import * as shared from "./shared.fm.js";
+import * as os from "./util/os.ts";
+import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.ts";
+import * as shared from "./shared.fm.ts";
 
 //------------------------------------------------------------------------------
 // Server listens on port 8000 but only returns "not found" for now

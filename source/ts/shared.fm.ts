@@ -3,7 +3,7 @@
 // feature-modular experiments
 // author: asnaroo
 
-import { _Feature, feature, def, replace, on, after, before, struct, make, nolog, fm}  from "./util/fm.js";
+import { _Feature, feature, def, replace, on, after, before, struct, make, nolog, fm}  from "./util/fm.ts";
 
 //-----------------------------------------------------------------------------
 // Run

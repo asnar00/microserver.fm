@@ -4,15 +4,14 @@
 // author: asnaroo
 
 console.log("----------------------------------------------------------");
-import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.js";
-import * as _Demo from "./import/Demo.fm.js";
-import "../../build/fnf/declarations.d.ts";
+import { _Feature, feature, def, replace, on, after, before, fm } from "./util/fm.ts";
+import * as ImportAll from "./import/all.ts";
 
-_Demo._import();
+ImportAll._import();
 
-async function main() {
+function main() {
     console.log("----------------------------------------------------------");
-    await demo();
+    demo();
 }
 
 main();

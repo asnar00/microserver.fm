@@ -1,7 +1,7 @@
 ᕦ(ツ)ᕤ
-# Demo/Countdown
+# Countdown
 
-`Countdown` just prints the numbers 10 .. 1 before the rest of the whatever.
+`Countdown` just prints the numbers 10 .. 1 before the rest of the whatever. If we just change this now, it shouldn't affect the build.
 
     feature Countdown extends Demo;
 
@@ -11,4 +11,4 @@ Really, `countdown` should print the numbers one at a time, one per second, but 
 
 We want this to happen before everything else in the program:
 
-    before async demo() { countdown(); }
+    before demo() { countdown(); }
