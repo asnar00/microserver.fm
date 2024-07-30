@@ -11,7 +11,7 @@ declare const countdown: () => void;
 declare const demo: () => void;
 
 @feature export class _Countdown extends _Demo { 
-@def countdown() { console.log("10 9 8 7 6 5 4 3 2 1"); } 
+@def countdown() { fm.log("10 9 8 7 6 5 4 3 2 1"); } 
 @before demo() { countdown(); } 
 
 async _test() {

@@ -1,8 +1,11 @@
 # scribbles
 
 
+Sort of feels weird to be adding this functionality in a non-feature-modular way.
+I feel like we should be programming this all in fnf.ts => but we will have to rewrite it all once we're done.
+Once we have the basic thing working, we can write the next version using it.
 
-
+This is the way.
 ___________________________________________________
 
 `fnf` is the key idea here. We should be able to take an fnf document and use it to generate code in any language, or in any combination of languages, using LLMs as the translation engines.

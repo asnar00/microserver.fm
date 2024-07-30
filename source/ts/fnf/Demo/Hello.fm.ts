@@ -11,7 +11,7 @@ declare const hello: () => void;
 declare const demo: () => void;
 
 @feature export class _Hello extends _Demo { 
-@def hello() { console.log("hello world!"); } 
+@def hello() { fm.log("hello world!"); } 
 @replace demo() { hello(); } 
 
 async _test() {

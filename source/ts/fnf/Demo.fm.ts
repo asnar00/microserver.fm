@@ -9,10 +9,10 @@ export function _import() { console.log("Demo._import()"); }
 declare const demo: () => void;
 
 @feature export class _Demo extends _Feature { 
-@def demo() { console.log("ᕦ(ツ)ᕤ"); } 
+@def demo() { fm.log("ᕦ(ツ)ᕤ"); } 
 
 async _test() {
     fm._source("/fnf/Demo.md");
-    fm._assert(await demo(), undefined, 17); 
+    fm._assert(await (5 + 4), 9, 17); 
 }
 }

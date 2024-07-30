@@ -10,11 +10,12 @@ author: asnaroo
 
 To run the demo, we'll define an empty `demo` function:
 
-    def demo() { console.log("ᕦ(ツ)ᕤ"); }
+    def demo() { fm.log("ᕦ(ツ)ᕤ"); }
 
 And here's a test just to see what happens:
 
-    demo() ==> undefined
+    (5 + 4) ==> 9
+
 
 ---
 

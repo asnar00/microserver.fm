@@ -7,7 +7,7 @@
     
 `goodbye` offers a non-traditional earthling message of farewell:
 
-    def goodbye() { console.log("kthxbye."); }
+    def goodbye() { fm.log("kthxbye."); }
 
 And we want to issue this after everything else is complete:
 

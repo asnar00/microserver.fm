@@ -330,6 +330,14 @@ function listParams(func: Function): string[] {
 export class FeatureManager {
     isDebugging: boolean = false;
     sourcePath = "";
+    sourceMap : Map<string, number[]> = new Map();
+    sourceFolder: string = "";
+
+    // initialise: read arguments to get test stuff, run tests
+    async init(args: string[], sourceFolder: string) {
+        this.sourceFolder = "file://" + sourceFolder;
+        if (args.indexOf("-test") >= 0) { await this.test(); }
+    }
 
     // disable one or more features
     disable(featureNames: string[]) {
@@ -361,7 +369,9 @@ export class FeatureManager {
     }
 
     async test(mf: MetaFeature|null = null) {
-        if (!mf) { mf = MetaFeature._byname["_Feature"]; }
+        if (!mf) { 
+            mf = MetaFeature._byname["_Feature"]; 
+        }
         if (mf.isEnabled()) {
             if (mf.instance) {
                 const parentInstance = mf.parent ? mf.parent.instance : null;
@@ -514,9 +524,10 @@ export class FeatureManager {
     log(...args: any[]) {
         const message = args.map(arg => this.stringify(arg)).join(' ');
         const stack : string[] = this.get_stack();
-        const location = this.get_location(stack);
-        const logManager = this.get_log_manager(stack);
+        const location : string = this.get_location(stack);
+        const logManager : LogManager = this.get_log_manager(stack);
         logManager.current!.contents.push(new LogLine(location, message));
+        console.log(`${message} ${this.console_grey("   ◀︎ " + location)}`);
     }
 
     // start a group of log messages
@@ -609,7 +620,7 @@ export class FeatureManager {
     // given the stack as line-array, return source file/line of log call
     get_location(stack: string[]) : string {
         let index = stack.findIndex((line) => !(line.includes("/fm.ts") || line.includes("__asynclog__") || line.includes("_Logging.")));
-        if (index >= 0 && index < stack.length) { return stack[index]; }
+        if (index >= 0 && index < stack.length) { return stack[index].replaceAll(this.sourceFolder, ""); }
         return "";
     }
 
@@ -661,12 +672,16 @@ export class FeatureManager {
     _source(path: string) { this.sourcePath = path;}
 
     _output(value: any, line: number) {
-        console.log(value, `(${this.sourcePath}:${line})`);
+        const loc = this.console_grey(`   ◀︎ ${this.sourcePath}:${line}`);
+        console.log(value, loc);
     }
 
     _assert(value: any, expected: any, line: number) {
+        const loc = this.console_grey(`   ◀︎ ${this.sourcePath}:${line}`);
         if (value != expected) {
-            console.error(`expected ${expected}, got ${value} (${this.sourcePath}:${line})`);
+            console.error(`expected ${expected}, got ${value} ${loc}`);
+        } else {
+            console.log(`passed: ${value} ${loc}`);
         }
     }
 

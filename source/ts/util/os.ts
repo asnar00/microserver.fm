@@ -20,6 +20,11 @@ export function readFile(path: string): string {
     return Deno.readTextFileSync(path);
 }
 
+export function readJson(path: string): any {
+    const text = readFile(path);
+    return JSON.parse(text);
+}
+
 export function writeFile(path: string, content: string) {
     deno_fs.ensureDirSync(deno_path.dirname(path));
     Deno.writeTextFileSync(path, content);

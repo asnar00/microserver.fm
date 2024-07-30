@@ -12,7 +12,7 @@ declare const demo: () => void;
 
 @feature export class _Goodbye extends _Demo { 
  
-@def goodbye() { console.log("kthxbye."); } 
+@def goodbye() { fm.log("kthxbye."); } 
 @after demo() { goodbye(); } 
 
 async _test() {
