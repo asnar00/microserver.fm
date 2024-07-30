@@ -50,9 +50,7 @@ class LogResult<R> {
 // base class of all feature clauses
 
 export class _Feature {
-    async _test() { 
-        fm.log("hello from _Feature.test()");
-    }
+    async _test() { }
     existing(fn: Function) {
         let name = functionNames.get(fn);
         if (name) {
@@ -155,7 +153,6 @@ _metaFeature.initialise("", new _Feature());
 // @feature decorator handler
 export function feature<T extends { new (...args: any[]): {} }>(constructor: T) {
     const className = constructor.name;
-    console.log("@feature", className);
     const prototype = Object.getPrototypeOf(constructor.prototype);
     const superClassConstructor = prototype ? prototype.constructor : null;
     const superClassName = superClassConstructor ? superClassConstructor.name : 'None';

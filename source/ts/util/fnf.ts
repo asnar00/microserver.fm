@@ -132,7 +132,7 @@ function fixFeatureCode(code: string, filename: string) : string {
     const functionDecls = findFunctions(code);
 
     const featureName = os.basename(filename).replaceAll(".fm.ts", "");
-    const loadModuleCode = `export function _import() { console.log("${featureName}._import()"); }`;
+    const loadModuleCode = `export function _import() { }`;
 
     code = importStr + "\n\n" + loadModuleCode + "\n\n" + functionDecls + "\n" + code;
     return code;

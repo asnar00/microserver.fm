@@ -4,7 +4,7 @@
 
 import { _Feature, feature, def, replace, on, after, before, struct, extend, make, fm } from "../util/fm.ts";
 
-export function _import() { console.log("Demo._import()"); }
+export function _import() { }
 
 declare const demo: () => void;
 
