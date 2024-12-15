@@ -1,7 +1,7 @@
 ᕦ(ツ)ᕤ
 # microserver.fm
 
-microserver.fm is a feature-modular deno server.
+microserver.fm is a feature-modular demo server.
 
 ## feature modularity
 
